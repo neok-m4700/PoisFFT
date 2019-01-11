@@ -6,25 +6,25 @@
 #define colons :,:,:
 #endif
 
-    type(c_ptr), value :: D
-    type(c_ptr), value :: Phi, RHS
-    real(rp), pointer :: f_Phi(colons), f_RHS(colons)
-    integer(c_int), optional :: ngPhi(dims), ngRHS(dims)
-    integer :: i
-    
-    call c_f_pointer(D, f_D)
-    
-    if (present(ngPhi)) then
-      call c_f_pointer(Phi, f_Phi, [(f_D%nxyz(i)+2*ngPhi(dims+1-i), i=1,dims)])
-    else
-      call c_f_pointer(Phi, f_Phi, f_D%nxyz)
-    end if
-    
-    if (present(ngRHS)) then
-      call c_f_pointer(RHS, f_RHS, [(f_D%nxyz(i)+2*ngRHS(dims+1-i), i=1,dims)] )
-    else
-      call c_f_pointer(RHS, f_RHS, f_D%nxyz)
-    end if
+type(c_ptr), value :: d
+type(c_ptr), value :: phi, rhs
+real(rp), pointer :: f_phi(colons), f_rhs(colons)
+integer(c_int), optional :: ngphi(dims), ngrhs(dims)
+integer :: i
 
-    call Execute(f_D, f_Phi, f_RHS)
+call c_f_pointer(d, f_d)
+
+if (present(ngphi)) then
+   call c_f_pointer(phi, f_phi, [(f_d % nxyz(i) + 2 * ngphi(dims + 1 - i), i=1, dims)])
+else
+   call c_f_pointer(phi, f_phi, f_d % nxyz)
+end if
+
+if (present(ngrhs)) then
+   call c_f_pointer(rhs, f_rhs, [(f_d % nxyz(i) + 2 * ngrhs(dims + 1 - i), i=1, dims)])
+else
+   call c_f_pointer(rhs, f_rhs, f_d % nxyz)
+end if
+
+call execute(f_d, f_phi, f_rhs)
 #undef colons

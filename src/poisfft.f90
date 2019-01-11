@@ -1,18 +1,18 @@
 
-module PoisFFT_SP
-  use FFT_SP
+module poisfft_sp
+   use FFT_SP
 #define PREC 1
 
 #include "poisfft-inc.f90"
 
 #undef PREC
-end module PoisFFT_SP
+end module
 
-module PoisFFT_DP
-  use FFT_DP
+module poisfft_dp
+   use FFT_DP
 #define PREC 2
 
 #include "poisfft-inc.f90"
 
 #undef PREC
-end module PoisFFT_DP
+end module
