@@ -5,27 +5,23 @@
 #endif
 
 #if (PREC==2)
-#define RP DRP
-#define CP DCP
+#define RP drp
+#define CP dcp
 #define FFTW_EXECUTE_COMPLEX fftw_execute_dft
 #define FFTW_MPI_EXECUTE_COMPLEX fftw_mpi_execute_dft
 #define FFTW_EXECUTE_REAL fftw_execute_r2r
 #define PFFT_EXECUTE_GEN pfft_execute
 #else
-#define RP SRP
-#define CP SCP
+#define RP srp
+#define CP scp
 #define FFTW_EXECUTE_COMPLEX fftwf_execute_dft
 #define FFTW_MPI_EXECUTE_COMPLEX fftwf_mpi_execute_dft
 #define FFTW_EXECUTE_REAL fftwf_execute_r2r
 #define PFFT_EXECUTE_GEN pfftf_execute
 #endif
 use iso_c_binding
-use poisfft_precisions
+use poisfft_constants
 use fftw3
-use iso_fortran_env, only : &
-   fin => input_unit, &
-   fout => output_unit, &
-   ferr => error_unit
 #ifdef MPI
 use pfft
 #endif
@@ -68,13 +64,12 @@ type poisfft_plan3d
    integer(c_int) :: dir
 end type
 
-
 type mpi_vars_1d
    integer :: comm = -1 ! MPI communicator for the exchange
    integer :: rank ! our rank in comm
    integer :: np ! number of processes in comm
-   ! s for dimensions of send buffers, r for receive buffers
-   ! nx, nz are the dimensions of individual parts which will be sent to or received from other processes in comm
+   ! s for DIM of send buffers, r for receive buffers
+   ! nx, nz are the DIM of individual parts which will be sent to or received from other processes in comm
    ! displs are the displacements (offsets) of individual pieces in the whole 1D buffer
    ! counts are the the number of elements in each piece
    ! sumrnzs(i) is the sum of rnzs in pieces 1..i-1
@@ -216,81 +211,73 @@ end interface
 contains
 
 function poisfft_plan1d_new(self, plantypes, distributed) result(plan)
-#define dimensions 1
+#define DIM 1
 #include "plan_new-inc.f90"
-#undef dimensions
+#undef DIM
 end function
 
 function poisfft_plan2d_new(self, plantypes, distributed) result(plan)
-#define dimensions 2
+#define DIM 2
 #include "plan_new-inc.f90"
-#undef dimensions
+#undef DIM
 end function
 
 function poisfft_plan3d_new(self, plantypes, distributed) result(plan)
-#define dimensions 3
+#define DIM 3
 #include "plan_new-inc.f90"
-#undef dimensions
+#undef DIM
 end function
 
 subroutine allocate_fftw_1D_complex(self)
-#define dimensions 1
-#define realcomplex 2
+#define DIM 1
+#define REALCOMPLEX 2
 
 #include "allocate_fftw-inc.f90"
 
-#undef dimensions
-#undef realcomplex
+#undef DIM
+#undef REALCOMPLEX
 end subroutine
 
 subroutine allocate_fftw_1d_real(self)
-#define dimensions 1
-#define realcomplex 1
+#define DIM 1
+#define REALCOMPLEX 1
 
 #include "allocate_fftw-inc.f90"
 
-#undef dimensions
-#undef realcomplex
+#undef DIM
+#undef REALCOMPLEX
 end subroutine
 
 subroutine allocate_fftw_2d_complex(self)
-#define dimensions 2
-#define realcomplex 2
-
+#define DIM 2
+#define REALCOMPLEX 2
 #include "allocate_fftw-inc.f90"
-
-#undef dimensions
-#undef realcomplex
+#undef DIM
+#undef REALCOMPLEX
 end subroutine
 
 subroutine allocate_fftw_2d_real(self)
-#define dimensions 2
-#define realcomplex 1
-
+#define DIM 2
+#define REALCOMPLEX 1
 #include "allocate_fftw-inc.f90"
-
-#undef dimensions
-#undef realcomplex
+#undef DIM
+#undef REALCOMPLEX
 end subroutine
 
 subroutine allocate_fftw_3d_complex(self)
-#define dimensions 3
-#define realcomplex 2
-
+#define DIM 3
+#define REALCOMPLEX 2
 #include "allocate_fftw-inc.f90"
-
-#undef dimensions
-#undef realcomplex
+#undef DIM
+#undef REALCOMPLEX
 end subroutine
 
 subroutine allocate_fftw_3d_real(self)
-#define dimensions 3
-#define realcomplex 1
-
+#define DIM 3
+#define REALCOMPLEX 1
 #include "allocate_fftw-inc.f90"
-
-#undef dimensions
-#undef realcomplex
+#undef DIM
+#undef REALCOMPLEX
 end subroutine
 
 subroutine poisfft_plan1d_execute_complex(plan, data)

@@ -1,4 +1,4 @@
-#if (dimensions == 1)
+#if (DIM==1)
 
 #define POISFFT_SOLVERXD PoisFFT_Solver1D
 #define POISFFT_PLANXD   PoisFFT_Plan1D
@@ -6,7 +6,7 @@
 #define NXYZS            self%gnx
 #define COLONS           :
 
-#elif (dimensions == 2)
+#elif (DIM==2)
 
 #define POISFFT_SOLVERXD PoisFFT_Solver2D
 #define POISFFT_PLANXD   PoisFFT_Plan2D
@@ -24,7 +24,7 @@
 
 #endif
 
-#if (PREC == 2)
+#if (PREC==2)
 #define PFFT_CMPLX pfft_plan_dft
 #define PFFT_REAL pfft_plan_r2r
 #define FFTW_CMPLX_MPI_2D fftw_mpi_plan_dft_2d
@@ -52,22 +52,22 @@ if (plantypes(1) == fft_complex) then
 
    plan % dir = plantypes(2)
 
-#if defined(MPI) && dimensions > 1
+#if defined(MPI) && (DIM>1)
    distr = merge(distributed, .true., present(distributed))
 
-#if dimensions == 2
+#if (DIM==2)
    if (distr) then
       if (self % mpi % comm_dim == 1) then
          plan % planptr = FFTW_CMPLX_MPI_2D(int(self % gny, c_intptr_t), int(self % gnx, c_intptr_t), &
             self % cwork, self % cwork, self % mpi % comm, plan % dir, fftw_measure)
          plan % method = fft_distributed_fftw
       else
-         plan % planptr = PFFT_CMPLX(dimensions, int([NXYZS], c_intptr_t), self % cwork, self % cwork, self % mpi % comm, &
+         plan % planptr = PFFT_CMPLX(DIM, int([NXYZS], c_intptr_t), self % cwork, self % cwork, self % mpi % comm, &
             plan % dir, pfft_transposed_none + pfft_measure + pfft_preserve_input)
       end if
-#elif dimensions == 3
+#elif (DIM==3)
    if (distr) then
-      plan % planptr = PFFT_CMPLX(dimensions, int([NXYZS], c_intptr_t), self % cwork, self % cwork, self % mpi % comm, &
+      plan % planptr = PFFT_CMPLX(DIM, int([NXYZS], c_intptr_t), self % cwork, self % cwork, self % mpi % comm, &
          plan % dir, pfft_transposed_none + pfft_measure + pfft_preserve_input)
 #endif
    else
@@ -78,16 +78,16 @@ if (plantypes(1) == fft_complex) then
 #endif
 
 else
-   if (size(plantypes) < dimensions) then
+   if (size(plantypes) < DIM) then
       write(*, *) "Error: not enough flags when creating POISFFT_PLANXD, there must be one per dimension."
       STOP
    endif
 
-#if defined(MPI) && dimensions > 1
+#if defined(MPI) && (DIM>1)
    distr = merge(distributed, .true., present(distributed))
 
    if (distr) then
-      plan % planptr = PFFT_REAL(dimensions, int([NXYZS], c_intptr_t), self % rwork, self % rwork, self % mpi % comm, &
+      plan % planptr = PFFT_REAL(DIM, int([NXYZS], c_intptr_t), self % rwork, self % rwork, self % mpi % comm, &
          plantypes, pfft_transposed_none + pfft_measure + pfft_preserve_input)
    else
       plan % planptr = fftw_plan_gen(NXYZS, self % rwork, self % rwork, REALPLANTYPES, fftw_measure)

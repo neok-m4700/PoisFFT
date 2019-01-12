@@ -1,26 +1,20 @@
-#if (PREC==2)
+#if PREC == 2
 
-#define RP DRP
-#define CP DCP
-#define MPI_RP MPI_DOUBLE_PRECISION
-
-#define _RP _DRP
+#define RP drp
+#define CP dcp
+#define MPI_RP mpi_double_precision
 
 #else
 
-#define RP SRP
-#define CP SCP
-#define MPI_RP MPI_REAL
-
-#define _RP _SRP
-#define _CP _SCP
+#define RP srp
+#define CP scp
+#define MPI_RP mpi_real
 
 #endif
 
 use iso_c_binding
 !$ use omp_lib
-use poisfft_precisions
-use poisfft_parameters
+use poisfft_constants
 #ifdef MPI
 use mpi
 #endif
@@ -29,7 +23,7 @@ implicit none
 private
 public :: poisfft_solver1d, poisfft_solver2d, poisfft_solver3d, finalize, execute
 
-real(RP), parameter, private :: pi = 4 * atan(1._RP) ! 3.141592653589793238462_RP
+real(RP), parameter :: pi = 4 * atan(real(1., RP)) ! 3.141592653589793238462_RP
 
 interface poisfft_solver1d
    module procedure poisfft_solver1d__new
@@ -69,11 +63,7 @@ function poisfft_solver3d__new(nxyz, lxyz, bcs, approximation, gnxyz, offs, mpi_
    integer, intent(in) :: nxyz(3)
    real(RP), intent(in) :: lxyz(3)
    integer, intent(in) :: bcs(6)
-   integer, intent(in), optional :: approximation
-   integer, intent(in), optional :: gnxyz(3)
-   integer, intent(in), optional :: offs(3)
-   integer, intent(in), optional :: mpi_comm
-   integer, intent(in), optional :: nthreads
+   integer, intent(in), optional :: approximation, gnxyz(3), offs(3), mpi_comm, nthreads
 
    self % nxyz = nxyz
 
@@ -380,14 +370,14 @@ contains
       integer :: res
       integer, intent(in) :: bc
       select case(bc)
-       case(PoisFFT_Dirichlet)
-         res = FFT_RealOdd00
-       case(PoisFFT_DirichletStag)
-         res = FFT_RealOdd10
-       case(PoisFFT_Neumann)
-         res = FFT_RealEven00
-       case(PoisFFT_NeumannStag)
-         res = FFT_RealEven10
+       case(poisfft_dirichlet)
+         res = fft_realodd00
+       case(poisfft_dirichletstag)
+         res = fft_realodd10
+       case(poisfft_neumann)
+         res = fft_realeven00
+       case(poisfft_neumannstag)
+         res = fft_realeven10
        case default
          res = -1
       end select
@@ -397,14 +387,14 @@ contains
       integer :: res
       integer, intent(in) :: bc
       select case(bc)
-       case(PoisFFT_Dirichlet)
-         res = FFT_RealOdd00
-       case(PoisFFT_DirichletStag)
-         res = FFT_RealOdd01
-       case(PoisFFT_Neumann)
-         res = FFT_RealEven00
-       case(PoisFFT_NeumannStag)
-         res = FFT_RealEven01
+       case(poisfft_dirichlet)
+         res = fft_realodd00
+       case(poisfft_dirichletstag)
+         res = fft_realodd01
+       case(poisfft_neumann)
+         res = fft_realeven00
+       case(poisfft_neumannstag)
+         res = fft_realeven01
        case default
          res = -1
       end select
@@ -962,11 +952,10 @@ end function
 #ifdef MPI
 subroutine init_mpi_buffers(self, dir)
    interface
-      subroutine mpi_alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount, &
-         recvtype, comm, ierror)
-         integer sendbuf(*), recvbuf(*)
-         integer sendcount, sendtype, recvcount, recvtype
-         integer comm, ierror
+      subroutine mpi_alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm, ierror)
+         integer :: sendbuf(*), recvbuf(*)
+         integer :: sendcount, sendtype, recvcount, recvtype
+         integer :: comm, ierror
       end subroutine
    end interface
 
@@ -1044,6 +1033,4 @@ end subroutine
 
 #undef RP
 #undef CP
-#undef _RP
-#undef _CP
 #undef MPI_RP

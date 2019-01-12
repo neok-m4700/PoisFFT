@@ -50,10 +50,10 @@ contains
 end module
 
 module parameters
-   use PoisFFT_Precisions
+   use poisfft_constants
    use iso_c_binding
-   integer, parameter :: RP = DRP
-   real(RP), parameter :: pi = 4 * atan(1._RP) ! pi = 3.141592653589793238462_RP
+   integer, parameter :: rp = drp
+   real(RP), parameter :: pi = 4 * atan(real(1., RP)) ! pi = 3.141592653589793238462_RP
 end module
 
 module my_mpi
@@ -159,7 +159,7 @@ contains
       integer, intent(in) :: nx, ny, nz
       integer, intent(in) :: bcs(6)
       logical :: oddx, oddy, oddz, evenx, eveny, evenz
-      integer ierr, tag, status(mpi_status_size)
+      integer ierr, status(mpi_status_size)
 
       oddx = mod(iim, 2) == 1
       evenx = .not. oddx
@@ -170,30 +170,41 @@ contains
       oddz = mod(kim, 2) == 1
       evenz = .not. oddz
 
-
       call mpi_barrier(comm, ierr)
 
+#define SEND_W3 if (iim > 1) then; call send(phi(1, 1:ny, 1:nz), w_rank); end if
+#define RECV_W3 if (iim > 1) then; call recv(phi(0, 1:ny, 1:nz), w_rank); end if
+#define SEND_E3 if (iim < nxims) then; call send(phi(nx, 1:ny, 1:nz), e_rank); end if
+#define RECV_E3 if (iim < nxims) then; call recv(phi(nx + 1, 1:ny, 1:nz), e_rank); end if
+#define SEND_S3 if (jim > 1) then; call send(phi(1:nx, 1, 1:nz), s_rank); end if
+#define RECV_S3 if (jim > 1) then; call recv(phi(1:nx, 0, 1:nz), s_rank); end if
+#define SEND_N3 if (jim < nyims) then; call send(phi(1:nx, ny, 1:nz), n_rank); end if
+#define RECV_N3 if (jim < nyims) then; call recv(phi(1:nx, ny + 1, 1:nz), n_rank); end if
+#define SEND_B3 if (kim > 1) then; call send(phi(1:nx, 1:ny, 1), b_rank); end if
+#define RECV_B3 if (kim > 1) then; call recv(phi(1:nx, 1:ny, 0), b_rank); end if
+#define SEND_T3 if (kim < nzims) then; call send(phi(1:nx, 1:ny, nz), t_rank); end if
+#define RECV_T3 if (kim < nzims) then; call recv(phi(1:nx, 1:ny, nz + 1), t_rank); end if
+
       !internal boundaries
-      if (oddx) then; call send_w; else; call recv_e; end if
-      if (evenx) then; call send_w; else; call recv_e; end if
+      if (oddx) then; SEND_W3; else; RECV_E3; end if
+      if (evenx) then; SEND_W3; else; RECV_E3; end if
 
-      if (oddx) then; call send_e; else; call recv_w; end if
-      if (evenx) then; call send_e; else; call recv_w; end if
+      if (oddx) then; SEND_E3; else; RECV_W3; end if
+      if (evenx) then; SEND_E3; else; RECV_W3; end if
 
-      if (oddy) then; call send_s; else; call recv_n; end if
-      if (eveny) then; call send_s; else; call recv_n; end if
+      if (oddy) then; SEND_S3; else; RECV_N3; end if
+      if (eveny) then; SEND_S3; else; RECV_N3; end if
 
-      if (oddy) then; call send_n; else; call recv_s; end if
-      if (eveny) then; call send_n; else; call recv_s; end if
+      if (oddy) then; SEND_N3; else; RECV_S3; end if
+      if (eveny) then; SEND_N3; else; RECV_S3; end if
 
-      if (oddz) then; call send_b; else; call recv_t; end if
-      if (evenz) then; call send_b; else; call recv_t; end if
+      if (oddz) then; SEND_B3; else; RECV_T3; end if
+      if (evenz) then; SEND_B3; else;RECV_T3; end if
 
-      if (oddz) then; call send_t; else; call recv_b; end if
-      if (evenz) then; call send_t; else; call recv_b; end if
+      if (oddz) then; SEND_T3; else; RECV_B3; end if
+      if (evenz) then; SEND_T3; else; RECV_B3; end if
 
-
-      !global domain boundaries
+      ! global domain boundaries
       if (bcs(1) == poisfft_periodic) then
          if (nxims > 1) then
             if (iim == 1) then
@@ -222,7 +233,6 @@ contains
             if (iim == nxims) phi(nx + 1, :, :) = -phi(nx, :, :)
          end if
       end if
-
 
       if (bcs(3) == poisfft_periodic) then
          if (nyims > 1) then
@@ -299,54 +309,6 @@ contains
          call mpi_recv(a, size(a), mpi_rp, from, 1, comm, status, ierr)
          if (ierr /= 0) stop 'error sending mpi message.'
       end subroutine
-
-      subroutine send_w
-         if (iim > 1) then; call send(phi(1, 1:ny, 1:nz), w_rank); end if
-      end subroutine
-
-      subroutine recv_w
-         if (iim > 1) then; call recv(phi(0, 1:ny, 1:nz), w_rank); end if
-      end subroutine
-
-      subroutine send_e
-         if (iim < nxims) then; call send(phi(nx, 1:ny, 1:nz), e_rank); end if
-      end subroutine
-
-      subroutine recv_e
-         if (iim < nxims) then; call recv(phi(nx + 1, 1:ny, 1:nz), e_rank); end if
-      end subroutine
-
-      subroutine send_s
-         if (jim > 1) then; call send(phi(1:nx, 1, 1:nz), s_rank); end if
-      end subroutine
-
-      subroutine recv_s
-         if (jim > 1) then; call recv(phi(1:nx, 0, 1:nz), s_rank); end if
-      end subroutine
-
-      subroutine send_n
-         if (jim < nyims) then; call send(phi(1:nx, ny, 1:nz), n_rank); end if
-      end subroutine
-
-      subroutine recv_n
-         if (jim < nyims) then; call recv(phi(1:nx, ny + 1, 1:nz), n_rank); end if
-      end subroutine
-
-      subroutine send_b
-         if (kim > 1) then; call send(phi(1:nx, 1:ny, 1), b_rank); end if
-      end subroutine
-
-      subroutine recv_b
-         if (kim > 1) then; call recv(phi(1:nx, 1:ny, 0), b_rank); end if
-      end subroutine
-
-      subroutine send_t
-         if (kim < nzims) then; call send(phi(1:nx, 1:ny, nz), t_rank); end if
-      end subroutine
-
-      subroutine recv_t
-         if (kim < nzims) then; call recv(phi(1:nx, 1:ny, nz + 1), t_rank); end if
-      end subroutine
    end subroutine
 
    subroutine exchange_boundaries_2d(comm, phi, nx, ny, bcs)
@@ -365,18 +327,27 @@ contains
 
       call mpi_barrier(comm, ierr)
 
-      !internal boundaries
-      if (oddx) then; call send_w; else; call recv_e; end if
-      if (evenx) then; call send_w; else; call recv_e; end if
+#define SEND_W2 if (iim > 1) then; call send(phi(1, 1:ny), w_rank); end if
+#define RECV_W2 if (iim > 1) then; call recv(phi(0, 1:ny), w_rank); end if
+#define SEND_E2 if (iim < nxims) then; call send(phi(nx, 1:ny), e_rank); end if
+#define RECV_E2 if (iim < nxims) then; call recv(phi(nx + 1, 1:ny), e_rank); end if
+#define SEND_S2 if (jim > 1) then; call send(phi(1:nx, 1), s_rank); end if
+#define RECV_S2 if (jim > 1) then; call recv(phi(1:nx, 0), s_rank); end if
+#define SEND_N2 if (jim < nyims) then; call send(phi(1:nx, ny), n_rank); end if
+#define RECV_N2 if (jim < nyims) then; call recv(phi(1:nx, ny + 1), n_rank); end if
 
-      if (oddx) then; call send_e; else; call recv_w; end if
-      if (evenx) then; call send_e; else; call recv_w; end if
+      ! internal boundaries
+      if (oddx) then; SEND_W2; else; RECV_E2; end if
+      if (evenx) then; SEND_W2; else; RECV_E2; end if
 
-      if (oddy) then; call send_s; else; call recv_n; end if
-      if (eveny) then; call send_s; else; call recv_n; end if
+      if (oddx) then; SEND_E2; else; RECV_W2; end if
+      if (evenx) then; SEND_E2; else; RECV_W2; end if
 
-      if (oddy) then; call send_n; else; call recv_s; end if
-      if (eveny) then; call send_n; else; call recv_s; end if
+      if (oddy) then; SEND_S2; else; RECV_N2; end if
+      if (eveny) then; SEND_S2; else; RECV_N2; end if
+
+      if (oddy) then; SEND_N2; else; RECV_S2; end if
+      if (eveny) then; SEND_N2; else; RECV_S2; end if
 
       !global domain boundaries
       if (bcs(1) == poisfft_periodic) then
@@ -456,37 +427,6 @@ contains
          if (ierr /= 0) stop 'error sending mpi message.'
       end subroutine
 
-      subroutine send_w
-         if (iim > 1) then; call send(phi(1, 1:ny), w_rank); end if
-      end subroutine
-
-      subroutine recv_w
-         if (iim > 1) then; call recv(phi(0, 1:ny), w_rank); end if
-      end subroutine
-
-      subroutine send_e
-         if (iim < nxims) then; call send(phi(nx, 1:ny), e_rank); end if
-      end subroutine
-
-      subroutine recv_e
-         if (iim < nxims) then; call recv(phi(nx + 1, 1:ny), e_rank); end if
-      end subroutine
-
-      subroutine send_s
-         if (jim > 1) then; call send(phi(1:nx, 1), s_rank); end if
-      end subroutine
-
-      subroutine recv_s
-         if (jim > 1) then; call recv(phi(1:nx, 0), s_rank); end if
-      end subroutine
-
-      subroutine send_n
-         if (jim < nyims) then; call send(phi(1:nx, ny), n_rank); end if
-      end subroutine
-
-      subroutine recv_n
-         if (jim < nyims) then; call recv(phi(1:nx, ny + 1), n_rank); end if
-      end subroutine
    end subroutine
 
    subroutine res3d(nx, ny, nz, phi, rhs, aw, ae, as, an, ab, at, r)
@@ -503,7 +443,7 @@ contains
       real(knd), intent(in) :: as, an
       real(knd), intent(in) :: ab, at
       real(knd), intent(out) :: r
-      integer i, j, k, l
+      integer i, j, k
       real(knd) :: p, ap
       integer ie
 
@@ -543,7 +483,7 @@ contains
       real(knd), intent(in) :: aw, ae
       real(knd), intent(in) :: as, an
       real(knd), intent(out) :: r
-      integer i, j, k, l
+      integer i, j, k
       real(knd) :: p, ap
       integer ie
 
@@ -580,7 +520,7 @@ program testpoisson_hybrid
 
    implicit none
 
-   integer(c_intptr_t) :: ng(3) = [21,32,43] ! [131, 123, 127] 
+   integer(c_intptr_t) :: ng(3) = [21, 32, 43] ! [131, 123, 127] 
    real(rp), dimension(:, :, :), allocatable :: phi, rhs
    real(rp) :: dx, dy, dz, ls(3)
    integer i, j, k
@@ -594,8 +534,6 @@ program testpoisson_hybrid
    integer(c_intptr_t), dimension(3) :: nxyz, off, nxyz2, nsxyz2
    real(rp) :: s, p
    integer :: ie = 0
-   character(200) :: fname
-
    integer :: required, provided
 
    required = mpi_thread_serialized
@@ -844,15 +782,15 @@ contains
 
 
    subroutine save_vtk
-      use Endianness
+      use endianness
       integer filetype, fh, unit
-      integer(MPI_OFFSET_KIND) pos
-      real(real64), allocatable :: buffer(:, :, :), buf(:)
+      integer(mpi_offset_kind) pos
+      real(real64), allocatable :: buffer(:, :, :)
       character :: lf = achar(10)
       character(70) :: str
       character(10) :: fm = '(*(1x,g0))'
 
-      call GetEndianness
+      call getendianness
 
       if (master) then
          open(newunit = unit, file = 'out.vtk', &

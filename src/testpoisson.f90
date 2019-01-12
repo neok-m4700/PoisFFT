@@ -1,5 +1,5 @@
 module kinds
-   use poisfft_precisions
+   use poisfft_constants
    use iso_c_binding
    use iso_fortran_env
 
@@ -696,9 +696,9 @@ program testpoisson
    use poisfft
    implicit none
 
-   integer i, j, k, niters
+   integer :: i, j, k
    real(rp) :: x, y, z
-   character(len=12) :: arg
+   character(12) :: arg
    real(rp) :: avg, p
 
    if (command_argument_count() >= 3) then
@@ -782,20 +782,16 @@ program testpoisson
    rhs1d = rhs1d - sum(rhs1d) / size(rhs1d, kind=size_kind)
    call test1d([(poisfft_neumannstag, i=1, 2)], resexact1d_neumstag)
 
-   dx = lx / nx
-   dy = ly / ny
+   dx = lx / nx; dy = ly / ny
    call test2d([(poisfft_periodic, i=1, 4)])
 
-   dx = lx / (nx + 1)
-   dy = ly / (ny + 1)
+   dx = lx / (nx + 1); dy = ly / (ny + 1)
    call test2d([(poisfft_dirichlet, i=1, 4)])
 
-   dx = lx / nx
-   dy = ly / ny
+   dx = lx / nx; dy = ly / ny
    call test2d([(poisfft_dirichletstag, i=1, 4)])
 
-   dx = lx / (nx - 1)
-   dy = ly / (ny - 1)
+   dx = lx / (nx - 1); dy = ly / (ny - 1)
    avg = 0
    do j = 1, ny
       do i = 1, nx
@@ -808,19 +804,14 @@ program testpoisson
    rhs2d = rhs2d - avg / (real(nx - 1, rp) * real(ny - 1, rp))
    call test2d([(poisfft_neumann, i=1, 4)])
 
-   dx = lx / nx
-   dy = ly / ny
+   dx = lx / nx; dy = ly / ny
    rhs2d = rhs2d - sum(rhs2d) / (size(rhs2d, kind=size_kind))
    call test2d([(poisfft_neumannstag, i=1, 4)])
 
-   dx = lx / nx
-   dy = ly / ny
-   dz = lz / nz
+   dx = lx / nx; dy = ly / ny; dz = lz / nz
    call test3d([(poisfft_periodic, i=1, 6)])
 
-   dx = lx / (nx + 1)
-   dy = ly / (ny + 1)
-   dz = lz / (nz + 1)
+   dx = lx / (nx + 1); dy = ly / (ny + 1); dz = lz / (nz + 1)
    do k = 1, nz
       do j = 1, ny
          do i = 1, nx
@@ -831,9 +822,7 @@ program testpoisson
    end do
    call test3d([(poisfft_dirichlet, i=1, 6)], resexact3d_dir)
 
-   dx = lx / nx
-   dy = ly / ny
-   dz = lz / nz
+   dx = lx / nx; dy = ly / ny; dz = lz / nz
    do k = 1, nz
       do j = 1, ny
          do i = 1, nx
@@ -844,9 +833,7 @@ program testpoisson
    end do
    call test3d([(poisfft_dirichletstag, i=1, 6)], resexact3d_dirstag)
 
-   dx = lx / (nx - 1)
-   dy = ly / (ny - 1)
-   dz = lz / (nz - 1)
+   dx = lx / (nx - 1); dy = ly / (ny - 1); dz = lz / (nz - 1)
    avg = 0
    do k = 1, nz
       do j = 1, ny

@@ -339,15 +339,15 @@ contains
       str = "X_COORDINATES"
       write(str(15:), '(i5,2x,a)') nx, "float"
       write(unit) str, lf
-      write(unit) BigEnd(real([(i + offs(1), i=1, nx)], real32)), lf
+      write(unit) bigend(real([(i + offs(1), i=1, nx)], real32)), lf
       str = "Y_COORDINATES"
       write(str(15:), '(i5,2x,a)') ny, "float"
       write(unit) str, lf
-      write(unit) BigEnd(real([(i + offs(2), i=1, ny)], real32)), lf
+      write(unit) bigend(real([(i + offs(2), i=1, ny)], real32)), lf
       str = "Z_COORDINATES"
       write(str(15:), '(i5,2x,a)') nz, "float"
       write(unit) str, lf
-      write(unit) BigEnd(real([(i + offs(3), i=1, nz)], real32)), lf
+      write(unit) bigend(real([(i + offs(3), i=1, nz)], real32)), lf
       str = "POINT_DATA"
       write(str(12:), *) nx * ny * nz
       write(unit) str, lf
@@ -355,7 +355,7 @@ contains
       write(unit) "SCALARS array float", lf
       write(unit) "LOOKUP_TABLE default", lf
 
-      write(unit) Bigend(A(1:nx, 1:ny, 1:nz)), lf
+      write(unit) bigend(A(1:nx, 1:ny, 1:nz)), lf
       close(unit)
    end subroutine
 
@@ -366,9 +366,9 @@ contains
       integer :: nx, ny, nz, i, unit, offs(3)
       character(70) :: str
 
-      nx = ubound(A, 1)
-      ny = ubound(A, 2)
-      nz = ubound(A, 3)
+      nx = ubound(a, 1)
+      ny = ubound(a, 2)
+      nz = ubound(a, 3)
 
       if (present(offsets)) then
          offs = offsets
@@ -387,15 +387,15 @@ contains
       str = "X_COORDINATES"
       write(str(15:), '(i5,2x,a)') nx, "float"
       write(unit) str, lf
-      write(unit) BigEnd(real([(i + offs(1), i=1, nx)], real32)), lf
+      write(unit) bigend(real([(i + offs(1), i=1, nx)], real32)), lf
       str = "Y_COORDINATES"
       write(str(15:), '(i5,2x,a)') ny, "float"
       write(unit) str, lf
-      write(unit) BigEnd(real([(i + offs(2), i=1, ny)], real32)), lf
+      write(unit) bigend(real([(i + offs(2), i=1, ny)], real32)), lf
       str = "Z_COORDINATES"
       write(str(15:), '(i5,2x,a)') nz, "float"
       write(unit) str, lf
-      write(unit) BigEnd(real([(i + offs(3), i=1, nz)], real32)), lf
+      write(unit) bigend(real([(i + offs(3), i=1, nz)], real32)), lf
       str = "POINT_DATA"
       write(str(12:), *) nx * ny * nz
       write(unit) str, lf
@@ -403,7 +403,7 @@ contains
       write(unit) "SCALARS array float", lf
       write(unit) "LOOKUP_TABLE default", lf
 
-      write(unit) BigEnd(real(A(1:nx, 1:ny, 1:nz), real32)), lf
+      write(unit) bigend(real(A(1:nx, 1:ny, 1:nz), real32)), lf
       close(unit)
    end subroutine
 end module

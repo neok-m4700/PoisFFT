@@ -2,8 +2,7 @@ module poisfft
 #ifdef MPI
    use pfft
 #endif
-   use poisfft_precisions
-   use poisfft_parameters
+   use poisfft_constants
    use poisfft_sp, &
       poisfft_solver1d_sp => poisfft_solver1d, &
       poisfft_solver2d_sp => poisfft_solver2d, &

@@ -5,23 +5,20 @@ subroutine poisfft_solver1d_fullperiodic(self, phi, rhs)
    integer i
 #ifdef MPI
    interface
-      subroutine mpi_gather(sendbuf, sendcount, sendtype, recvbuf, recvcount, &
-         recvtype, root, comm, ierror)
+      subroutine mpi_gather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, root, comm, ierror)
          integer sendbuf, recvbuf(*)
          integer sendcount, sendtype, recvcount, recvtype, root
          integer comm, ierror
       end subroutine
 
-      subroutine mpi_gatherv(sendbuf, sendcount, sendtype, recvbuf, recvcounts, &
-         displs, recvtype, root, comm, ierror)
+      subroutine mpi_gatherv(sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype, root, comm, ierror)
          import
          real(RP) sendbuf(*), recvbuf(*)
          integer sendcount, sendtype, recvcounts(*), displs(*)
          integer recvtype, root, comm, ierror
       end subroutine
 
-      subroutine mpi_scatterv(sendbuf, sendcounts, displs, sendtype, recvbuf, &
-         recvcount, recvtype, root, comm, ierror)
+      subroutine mpi_scatterv(sendbuf, sendcounts, displs, sendtype, recvbuf, recvcount, recvtype, root, comm, ierror)
          import
          real(RP) sendbuf(*), recvbuf(*)
          integer sendcounts(*), displs(*), sendtype
@@ -44,7 +41,7 @@ subroutine poisfft_solver1d_fullperiodic(self, phi, rhs)
       call mpi_gatherv(rhs, self % nx, MPI_RP, tmp, counts, displs, MPI_RP, 0, self % mpi % comm, ie)
       if (ie /= 0) stop "Error in MPI_Gatherv!"
 
-      if (self % mpi % rank == 0) self % cwork = cmplx(tmp, 0._RP, CP)
+      if (self % mpi % rank == 0) self % cwork = cmplx(tmp, real(0., RP), CP)
 
       if (self % mpi % rank == 0) then
          call execute(self % forward, self % cwork)
@@ -58,7 +55,7 @@ subroutine poisfft_solver1d_fullperiodic(self, phi, rhs)
    end if
 #else
    ! Forward FFT of RHS
-   self % cwork = cmplx(rhs, 0._RP, CP)
+   self % cwork = cmplx(rhs, real(0., RP), CP)
    call execute(self % forward, self % cwork)
    forall(i=2:self % nx) self % cwork(i) = self % cwork(i) / self % denomx(i)
    call execute(self % backward, self % cwork)
@@ -103,7 +100,7 @@ subroutine poisfft_solver2d_fullperiodic(self, phi, rhs)
    integer i, j
 
    ! Forward FFT of RHS
-   self % cwork = cmplx(RHS, 0._RP, CP)
+   self % cwork = cmplx(RHS, real(0., RP), CP)
 
 #ifdef MPI
    call execute_mpi(self % forward)
@@ -124,7 +121,7 @@ subroutine poisfft_solver2d_fullperiodic(self, phi, rhs)
    call execute(self % backward, self % cwork)
 #endif
 
-   Phi = real(self % cwork, RP) / self % norm_factor
+   phi = real(self % cwork, RP) / self % norm_factor
 end subroutine
 
 subroutine poisfft_solver2d_fulldirichlet(self, phi, rhs)
@@ -174,7 +171,7 @@ subroutine poisfft_solver3d_fullperiodic(self, phi, rhs)
    !$omp parallel private(i,j,k)
 
    !$omp workshare
-   self % cwork = cmplx(RHS, 0._RP, CP)
+   self % cwork = cmplx(RHS, real(0., RP), CP)
    !$omp end workshare
 
    !$omp end parallel
@@ -329,8 +326,7 @@ subroutine poisfft_solver3d_ppns(self, phi, rhs)
    type(poisfft_solver3d), intent(inout) :: self
    real(RP), intent(out) :: phi(:, :, :)
    real(RP), intent(in) :: rhs(:, :, :)
-   integer i, j, k
-   integer tid
+   integer :: i, j, k, tid
 
    if (self % solvers1d(3) % mpi_transpose_needed) then
       call transform_1d_real_z(self % solvers1d(3:), phi, rhs, forward=.true., use_rhs=.true.)
@@ -352,7 +348,7 @@ subroutine poisfft_solver3d_ppns(self, phi, rhs)
    if (self % ny < self % gny) then
       do k = 1, self % nz
          !$omp parallel workshare
-         self % solvers2d(1) % cwork(1:self % nx, 1:self % ny) = cmplx(phi(1:self % nx, 1:self % ny, k), 0._RP, CP)
+         self % solvers2d(1) % cwork(1:self % nx, 1:self % ny) = cmplx(phi(1:self % nx, 1:self % ny, k), real(0., RP), CP)
          !$omp end parallel workshare
 
          call execute_mpi(self % solvers2d(1) % forward, self % solvers2d(1) % cwork)
@@ -390,7 +386,7 @@ subroutine poisfft_solver3d_ppns(self, phi, rhs)
 
       !$omp do
       do k = 1, self % nz
-         self % solvers2d(tid) % cwork(1:self % nx, 1:self % ny) = cmplx(phi(1:self % nx, 1:self % ny, k), 0._RP, CP)
+         self % solvers2d(tid) % cwork(1:self % nx, 1:self % ny) = cmplx(phi(1:self % nx, 1:self % ny, k), real(0., RP), CP)
          call execute(self % solvers2d(tid) % forward, self % solvers2d(tid) % cwork)
 
          if (k == 1 .and. self % offz == 0) then
@@ -445,8 +441,7 @@ subroutine poisfft_solver3d_ppns(self, phi, rhs)
    type(poisfft_solver3d), intent(inout) :: self
    real(RP), intent(out) :: phi(:, :, :)
    real(RP), intent(in) :: rhs(:, :, :)
-   integer i, j, k
-   integer tid !thread id
+   integer :: i, j, k, tid !thread id
 
    !$omp parallel private(tid,i,j,k)
    tid = 1
@@ -465,7 +460,7 @@ subroutine poisfft_solver3d_ppns(self, phi, rhs)
 
    !$omp do
    do k = 1, self % nz
-      self % solvers2d(tid) % cwork(1:self % nx, 1:self % ny) = cmplx(phi(1:self % nx, 1:self % ny, k), 0._RP, CP)
+      self % solvers2d(tid) % cwork(1:self % nx, 1:self % ny) = cmplx(phi(1:self % nx, 1:self % ny, k), real(0., RP), CP)
 
       call execute(self % solvers2d(tid) % forward, self % solvers2d(tid) % cwork)
       if (k == 1) then
@@ -514,8 +509,7 @@ subroutine poisfft_solver3d_pnsp(self, phi, rhs)
    type(poisfft_solver3d), intent(inout) :: self
    real(RP), intent(out) :: phi(:, :, :)
    real(RP), intent(in) :: rhs(:, :, :)
-   integer i, j, k
-   integer tid !thread id
+   integer :: i, j, k, tid !thread id
 
    !$omp parallel private(tid,i,j,k)
    tid = 1
@@ -534,7 +528,7 @@ subroutine poisfft_solver3d_pnsp(self, phi, rhs)
 
    !$omp do
    do j = 1, self % ny
-      self % solvers2d(tid) % cwork(1:self % nx, 1:self % nz) = cmplx(phi(1:self % nx, 1:self % nz, k), 0._RP, CP)
+      self % solvers2d(tid) % cwork(1:self % nx, 1:self % nz) = cmplx(phi(1:self % nx, 1:self % nz, k), real(0., RP), CP)
       call execute(self % solvers2d(tid) % forward, self % solvers2d(tid) % cwork)
       if (j == 1) then
          do k = 2, self % nz
@@ -580,8 +574,7 @@ subroutine poisfft_solver3d_pnsns(self, phi, rhs)
    type(poisfft_solver3d), intent(inout), target :: self
    real(RP), intent(out) :: phi(:, :, :)
    real(RP), intent(in) :: rhs(:, :, :)
-   integer i, j, k
-   integer tid
+   integer :: i, j, k, tid
 
    if (self % solvers1d(3) % mpi_transpose_needed) then
       call transform_1d_real_z(self % solvers1d(3 :: 3), phi, rhs, forward=.true., use_rhs=.true.)
@@ -623,7 +616,7 @@ subroutine poisfft_solver3d_pnsns(self, phi, rhs)
    !$omp do
    do k = 1, self % nz
       do j = 1, self % ny
-         self % solvers1d(1 + 3 * tid) % cwork = cmplx(phi(:, j, k), 0._RP, CP)
+         self % solvers1d(1 + 3 * tid) % cwork = cmplx(phi(:, j, k), real(0., RP), CP)
          call execute(self % solvers1d(1 + 3 * tid) % forward, self % solvers1d(1 + 3 * tid) % cwork)
 
          do i = max(4 - j - k - self % offy - self % offz, 1), self % nx
@@ -680,8 +673,7 @@ subroutine poisfft_solver3d_pnsns(self, phi, rhs)
    type(poisfft_solver3d), intent(inout) :: self
    real(RP), intent(out) :: phi(:, :, :)
    real(RP), intent(in) :: rhs(:, :, :)
-   integer i, j, k
-   integer tid !thread id
+   integer :: i, j, k, tid !thread id
 
    !$omp parallel private(tid,i,j,k)
    tid = 1
@@ -699,7 +691,7 @@ subroutine poisfft_solver3d_pnsns(self, phi, rhs)
    !$omp do
    do k = 1, self % nz
       do j = 1, self % ny
-         self % solvers1d(tid) % cwork = cmplx(phi(:, j, k), 0._RP, CP)
+         self % solvers1d(tid) % cwork = cmplx(phi(:, j, k), real(0., RP), CP)
          call execute(self % solvers1d(tid) % forward, self % solvers1d(tid) % cwork)
          do i = max(4 - j - k - self % offy - self % offz, 1), self % nx
             self % solvers1d(tid) % cwork(i) = self % solvers1d(tid) % cwork(i) &
@@ -737,10 +729,10 @@ subroutine transform_1d_real_y(D1D, Phi, RHS, forward, use_rhs)
    interface
       subroutine mpi_alltoallv(sendbuf, sendcounts, sdispls, sendtype, recvbuf, recvcounts, rdispls, recvtype, comm, ierror)
          import
-         real(RP) sendbuf(*), recvbuf(*)
-         integer sendcounts(*), sdispls(*), sendtype
-         integer recvcounts(*), rdispls(*), recvtype
-         integer comm, ierror
+         real(RP) :: sendbuf(*), recvbuf(*)
+         integer :: sendcounts(*), sdispls(*), sendtype
+         integer :: recvcounts(*), rdispls(*), recvtype
+         integer :: comm, ierror
       end subroutine
    end interface
 
@@ -839,10 +831,10 @@ subroutine transform_1d_real_z(d1d, phi, rhs, forward, use_rhs)
    interface
       subroutine mpi_alltoallv(sendbuf, sendcounts, sdispls, sendtype, recvbuf, recvcounts, rdispls, recvtype, comm, ierror)
          import
-         real(RP) sendbuf(*), recvbuf(*)
-         integer sendcounts(*), sdispls(*), sendtype
-         integer recvcounts(*), rdispls(*), recvtype
-         integer comm, ierror
+         real(RP) :: sendbuf(*), recvbuf(*)
+         integer :: sendcounts(*), sdispls(*), sendtype
+         integer :: recvcounts(*), rdispls(*), recvtype
+         integer :: comm, ierror
       end subroutine
    end interface
 
