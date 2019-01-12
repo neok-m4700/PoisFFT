@@ -11,3 +11,4 @@ tmp/*
 scratch/*
 *.dblite
 fftw3.f03
+.sublime-backup/

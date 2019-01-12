@@ -1,12 +1,11 @@
-module PoisFFT_Parameters
+module poisfft_parameters
+   integer, parameter :: poisfft_periodic = 0
+   integer, parameter :: poisfft_dirichlet = 1
+   integer, parameter :: poisfft_neumann = 2
+   integer, parameter :: poisfft_dirichletstag = 3
+   integer, parameter :: poisfft_neumannstag = 4
 
-   integer, parameter :: PoisFFT_Periodic = 0
-   integer, parameter :: PoisFFT_Dirichlet = 1
-   integer, parameter :: PoisFFT_Neumann = 2
-   integer, parameter :: PoisFFT_DirichletStag = 3
-   integer, parameter :: PoisFFT_NeumannStag = 4
-
-   integer, parameter :: PoisFFT_Spectral = 0
-   integer, parameter :: PoisFFT_FiniteDifference2 = 2
-   integer, parameter :: PoisFFT_FiniteDifference4 = 4
+   integer, parameter :: poisfft_spectral = 0
+   integer, parameter :: poisfft_finitedifference2 = 2
+   integer, parameter :: poisfft_finitedifference4 = 4
 end module

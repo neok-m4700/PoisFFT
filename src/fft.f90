@@ -1,15 +1,15 @@
-module FFT_SP
+module fft_sp
 #define PREC 1
 
 #include "fft-inc.f90"
 
 #undef PREC
-end module FFT_SP
+end module
 
-module FFT_DP
+module fft_dp
 #define PREC 2
 
 #include "fft-inc.f90"
 
 #undef PREC
-end module FFT_DP
+end module

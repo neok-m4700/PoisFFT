@@ -9,13 +9,13 @@ integer :: f_comm, appr
 integer, parameter :: idxs(6) = [2, 1, 4, 3, 6, 5]
 
 #ifdef MPI
-f_comm = MPI_Comm_c2f(comm_ptr)
+f_comm = mpi_comm_c2f(comm_ptr)
 #else
  !to avoid unused variable warning
 if (c_associated(comm_ptr)) f_comm = 0
 #endif
 
-allocate(f_D)
+allocate(f_d)
 
 if (nthreads < 1) nthreads = 1
 
@@ -26,20 +26,20 @@ else
 end if
 
 if (present(gnxyz) .and. present(offs)) then
-   f_D = solver(int(nxyz(dims:1:-1)), &
-      Lxyz(dims:1:-1), &
-      int(BCs(idxs(2 * dims:1:-1))), &
+   f_d = solver(int(nxyz(dims:1:-1)), &
+      lxyz(dims:1:-1), &
+      int(bcs(idxs(2 * dims:1:-1))), &
       appr, &
       int(gnxyz(dims:1:-1)), &
       int(offs(dims:1:-1)), &
       f_comm, &
       int(nthreads))
 else
-   f_D = solver(int(nxyz(dims:1:-1)), &
-      Lxyz(dims:1:-1), &
-      int(BCs(idxs(2 * dims:1:-1))), &
+   f_d = solver(int(nxyz(dims:1:-1)), &
+      lxyz(dims:1:-1), &
+      int(bcs(idxs(2 * dims:1:-1))), &
       appr, &
       nthreads = int(nthreads))
 end if
 
-D = c_loc(f_D)
+d = c_loc(f_d)

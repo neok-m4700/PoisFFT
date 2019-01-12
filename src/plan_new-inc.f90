@@ -1,52 +1,52 @@
-#if dimensions == 1
+#if (dimensions == 1)
 
-#define PoisFFT_SolverXD PoisFFT_Solver1D
-#define PoisFFT_PlanXD   PoisFFT_Plan1D
-#define realplantypes    plantypes(1)
-#define nxyzs            D%gnx
-#define colons           :
+#define POISFFT_SOLVERXD PoisFFT_Solver1D
+#define POISFFT_PLANXD   PoisFFT_Plan1D
+#define REALPLANTYPES    plantypes(1)
+#define NXYZS            self%gnx
+#define COLONS           :
 
-#elif dimensions == 2
+#elif (dimensions == 2)
 
-#define PoisFFT_SolverXD PoisFFT_Solver2D
-#define PoisFFT_PlanXD   PoisFFT_Plan2D
-#define realplantypes    plantypes(1),plantypes(2)
-#define nxyzs            D%gny,D%gnx
-#define colons           :,:
+#define POISFFT_SOLVERXD PoisFFT_Solver2D
+#define POISFFT_PLANXD   PoisFFT_Plan2D
+#define REALPLANTYPES    plantypes(1),plantypes(2)
+#define NXYZS            self%gny,self%gnx
+#define COLONS           :,:
 
 #else
 
-#define PoisFFT_SolverXD PoisFFT_Solver3D
-#define PoisFFT_PlanXD   PoisFFT_Plan3D
-#define realplantypes    plantypes(1),plantypes(2),plantypes(3)
-#define nxyzs            D%gnz,D%gny,D%gnx
-#define colons           :,:,:
+#define POISFFT_SOLVERXD PoisFFT_Solver3D
+#define POISFFT_PLANXD   PoisFFT_Plan3D
+#define REALPLANTYPES    plantypes(1),plantypes(2),plantypes(3)
+#define NXYZS            self%gnz,self%gny,self%gnx
+#define COLONS           :,:,:
 
 #endif
 
 #if (PREC == 2)
-#define pfft_cmplx pfft_plan_dft
-#define pfft_real pfft_plan_r2r
-#define fftw_cmplx_mpi_2d fftw_mpi_plan_dft_2d
+#define PFFT_CMPLX pfft_plan_dft
+#define PFFT_REAL pfft_plan_r2r
+#define FFTW_CMPLX_MPI_2D fftw_mpi_plan_dft_2d
 #else
-#define pfft_cmplx pfftf_plan_dft
-#define pfft_real pfftf_plan_r2r
-#define fftw_cmplx_mpi_2d fftwf_mpi_plan_dft_2d
+#define PFFT_CMPLX pfftf_plan_dft
+#define PFFT_REAL pfftf_plan_r2r
+#define FFTW_CMPLX_MPI_2D fftwf_mpi_plan_dft_2d
 #endif
 
-type(PoisFFT_PlanXD) :: plan
+type(POISFFT_PLANXD) :: plan
 
-type(PoisFFT_SolverXD), intent(inout) :: D
+type(POISFFT_SOLVERXD), intent(inout) :: self
 integer, intent(in), dimension(:) :: plantypes
 logical, intent(in), optional :: distributed
 logical :: distr
 
 distr = .false.
 
-if (plantypes(1) == FFT_Complex) then
+if (plantypes(1) == fft_complex) then
 
    if (size(plantypes) < 2) then
-      write(*, *) "Error: not enough flags when creating PoisFFT_PlanXD"
+      write(*, *) "Error: not enough flags when creating POISFFT_PLANXD"
       STOP
    endif
 
@@ -57,31 +57,29 @@ if (plantypes(1) == FFT_Complex) then
 
 #if dimensions == 2
    if (distr) then
-      if (D % mpi % comm_dim == 1) then
-         plan % planptr = fftw_cmplx_mpi_2d(int(D % gny, c_intptr_t), int(D % gnx, c_intptr_t), &
-            D % cwork, D % cwork, D % mpi % comm, plan % dir, FFTW_MEASURE)
-         plan % method = FFT_DISTRIBUTED_FFTW
+      if (self % mpi % comm_dim == 1) then
+         plan % planptr = FFTW_CMPLX_MPI_2D(int(self % gny, c_intptr_t), int(self % gnx, c_intptr_t), &
+            self % cwork, self % cwork, self % mpi % comm, plan % dir, fftw_measure)
+         plan % method = fft_distributed_fftw
       else
-         plan % planptr = pfft_cmplx(dimensions, int([nxyzs], c_intptr_t), &
-            D % cwork, D % cwork, D % mpi % comm, &
-            plan % dir, PFFT_TRANSPOSED_NONE + PFFT_MEASURE + PFFT_PRESERVE_INPUT)
+         plan % planptr = PFFT_CMPLX(dimensions, int([NXYZS], c_intptr_t), self % cwork, self % cwork, self % mpi % comm, &
+            plan % dir, pfft_transposed_none + pfft_measure + pfft_preserve_input)
       end if
 #elif dimensions == 3
    if (distr) then
-      plan % planptr = pfft_cmplx(dimensions, int([nxyzs], c_intptr_t), &
-         D % cwork, D % cwork, D % mpi % comm, &
-         plan % dir, PFFT_TRANSPOSED_NONE + PFFT_MEASURE + PFFT_PRESERVE_INPUT)
+      plan % planptr = PFFT_CMPLX(dimensions, int([NXYZS], c_intptr_t), self % cwork, self % cwork, self % mpi % comm, &
+         plan % dir, pfft_transposed_none + pfft_measure + pfft_preserve_input)
 #endif
    else
-      plan % planptr = fftw_plan_gen(nxyzs, D % cwork, D % cwork, plan % dir, FFTW_MEASURE)
+      plan % planptr = fftw_plan_gen(NXYZS, self % cwork, self % cwork, plan % dir, fftw_measure)
    end if
 #else
-   plan % planptr = fftw_plan_gen(nxyzs, D % cwork, D % cwork, plan % dir, FFTW_MEASURE)
+   plan % planptr = fftw_plan_gen(NXYZS, self % cwork, self % cwork, plan % dir, fftw_measure)
 #endif
 
 else
    if (size(plantypes) < dimensions) then
-      write(*, *) "Error: not enough flags when creating PoisFFT_PlanXD, there must be one per dimension."
+      write(*, *) "Error: not enough flags when creating POISFFT_PLANXD, there must be one per dimension."
       STOP
    endif
 
@@ -89,14 +87,13 @@ else
    distr = merge(distributed, .true., present(distributed))
 
    if (distr) then
-      plan % planptr = pfft_real(dimensions, int([nxyzs], c_intptr_t), &
-         D % rwork, D % rwork, D % mpi % comm, &
-         plantypes, PFFT_TRANSPOSED_NONE + PFFT_MEASURE + PFFT_PRESERVE_INPUT)
+      plan % planptr = PFFT_REAL(dimensions, int([NXYZS], c_intptr_t), self % rwork, self % rwork, self % mpi % comm, &
+         plantypes, pfft_transposed_none + pfft_measure + pfft_preserve_input)
    else
-      plan % planptr = fftw_plan_gen(nxyzs, D % rwork, D % rwork, realplantypes, FFTW_MEASURE)
+      plan % planptr = fftw_plan_gen(NXYZS, self % rwork, self % rwork, REALPLANTYPES, fftw_measure)
    end if
 #else
-   plan % planptr = fftw_plan_gen(nxyzs, D % rwork, D % rwork, realplantypes, FFTW_MEASURE)
+   plan % planptr = fftw_plan_gen(NXYZS, self % rwork, self % rwork, REALPLANTYPES, fftw_measure)
 #endif
 
 endif
@@ -106,12 +103,12 @@ plan % distributed = distr
 
 if (.not. c_associated(plan % planptr)) stop "Error, FFT plan not created!"
 
-#undef colons
-#undef realplantypes
-#undef nxyzs
-#undef PoisFFT_SolverXD
-#undef PoisFFT_PlanXD
-#undef SliceXD
-#undef pfft_cmplx
-#undef pfft_real
-#undef fftw_cmplx_mpi_2d
+#undef COLONS
+#undef REALPLANTYPES
+#undef NXYZS
+#undef POISFFT_SOLVERXD
+#undef POISFFT_PLANXD
+#undef SLICEXD
+#undef PFFT_CMPLX
+#undef PFFT_REAL
+#undef FFTW_CMPLX_MPI_2D
