@@ -1,8 +1,8 @@
-type(solver), pointer :: f_D
-type(c_ptr), intent(out) :: D
-integer(c_int) :: nxyz(dims), BCs(2 * dims)
-real(rp) :: Lxyz(dims)
-integer(c_int), optional :: approximation, gnxyz(dims), offs(dims)
+type(SOLVER), pointer :: f_self
+type(c_ptr), intent(out) :: self
+integer(c_int) :: nxyz(DIM), bcs(2 * DIM)
+real(RPC) :: lxyz(DIM)
+integer(c_int), optional :: approximation, gnxyz(DIM), offs(DIM)
 type(c_ptr), value :: comm_ptr
 integer(c_int), value :: nthreads
 integer :: f_comm, appr
@@ -15,7 +15,7 @@ f_comm = mpi_comm_c2f(comm_ptr)
 if (c_associated(comm_ptr)) f_comm = 0
 #endif
 
-allocate(f_d)
+allocate(f_self)
 
 if (nthreads < 1) nthreads = 1
 
@@ -26,20 +26,11 @@ else
 end if
 
 if (present(gnxyz) .and. present(offs)) then
-   f_d = solver(int(nxyz(dims:1:-1)), &
-      lxyz(dims:1:-1), &
-      int(bcs(idxs(2 * dims:1:-1))), &
-      appr, &
-      int(gnxyz(dims:1:-1)), &
-      int(offs(dims:1:-1)), &
-      f_comm, &
-      int(nthreads))
+   f_self = SOLVER(&
+      int(nxyz(DIM:1:-1)), lxyz(DIM:1:-1), int(bcs(idxs(2 * DIM:1:-1))), &
+      appr, int(gnxyz(DIM:1:-1)), int(offs(DIM:1:-1)), f_comm, int(nthreads))
 else
-   f_d = solver(int(nxyz(dims:1:-1)), &
-      lxyz(dims:1:-1), &
-      int(bcs(idxs(2 * dims:1:-1))), &
-      appr, &
-      nthreads = int(nthreads))
+   f_self = SOLVER(int(nxyz(DIM:1:-1)), lxyz(DIM:1:-1), int(bcs(idxs(2 * DIM:1:-1))), appr, nthreads=int(nthreads))
 end if
 
-d = c_loc(f_d)
+self = c_loc(f_self)

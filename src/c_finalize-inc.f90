@@ -1,6 +1,6 @@
-type(c_ptr), intent(inout) :: D
+type(c_ptr), intent(inout) :: self
 
-call c_f_pointer(D, f_D)
-call Finalize(f_D)
-deallocate(f_D)
-D = c_null_ptr;
+call c_f_pointer(self, f_self)
+call finalize(f_self)
+deallocate(f_self)
+self = c_null_ptr;

@@ -43,7 +43,7 @@ void check_solution(const int ns[3], const double ds[3], const double Ls[3], dou
                        );
             }
     if (sum < 1e-10)
-        cout << "OK\n" << endl;
+        cout << "OK" << endl;
     else
         cout << "FAIL, residuum" << sum << endl;
 }
@@ -54,7 +54,7 @@ int main()
     const double Ls[3] = {1.1, 2., 2.9};
 
     // gridpoint numbers
-    const int ns[3] = {71, 93, 101};
+    const int ns[3] = {31, 43, 57}; // {71, 93, 101};
 
     // distances between gridpoints
     double ds[3];

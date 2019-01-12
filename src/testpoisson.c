@@ -54,7 +54,7 @@ int main()
   const double Ls[3] = {1.1, 2., 2.9};
 
   // gridpoint numbers
-  const int ns[3] = {71, 93, 101};
+  const int ns[3] = {31, 43, 57}; // {71, 93, 101};
 
   // distances between gridpoints
   double ds[3];

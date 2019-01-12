@@ -1,33 +1,33 @@
-module Endianness
+module endianness
    use iso_fortran_env
    implicit none
 
    private
-   public :: GetEndianness, BigEnd, SwapB, littleendian
+   public :: getendianness, bigend, swapb, littleendian
 
    logical, save :: littleendian = .true.
 
-   interface BigEnd
-      module procedure BigEnd16
-      module procedure BigEnd32
-      module procedure BigEnd32_a1
-      module procedure BigEnd32_a2
-      module procedure BigEnd32_a3
-      module procedure BigEnd32_a4
-      module procedure BigEnd64
-      module procedure BigEnd64_a1
-      module procedure BigEnd64_a2
-      module procedure BigEnd64_a3
-      module procedure BigEnd64_a4
+   interface bigend
+      module procedure bigend16
+      module procedure bigend32
+      module procedure bigend32_a1
+      module procedure bigend32_a2
+      module procedure bigend32_a3
+      module procedure bigend32_a4
+      module procedure bigend64
+      module procedure bigend64_a1
+      module procedure bigend64_a2
+      module procedure bigend64_a3
+      module procedure bigend64_a4
    end interface
 
-   interface SwapB
-      module procedure SwapB32
-      module procedure SwapB64
+   interface swapb
+      module procedure swapb32
+      module procedure swapb64
    end interface
 
 contains
-   subroutine GetEndianness
+   subroutine getendianness
       character(4) :: bytes !may not work on some processors
 
       bytes = transfer(1_int32, bytes)
@@ -38,7 +38,7 @@ contains
       endif
    end subroutine
 
-   elemental function BigEnd16(x) result(res)
+   elemental function bigend16(x) result(res)
       integer(int16) :: res
       integer(int16), intent(in) :: x
       character(2) :: bytes
@@ -52,113 +52,113 @@ contains
       endif
    end function
 
-   function BigEnd32(x) result(res)
+   function bigend32(x) result(res)
       real(real32), intent(in) :: x
       real(real32) :: res
 
       if (.not. littleendian) then
          res = x
       else
-         res = SwapB(x)
+         res = swapb(x)
       endif
    end function
 
-   function BigEnd32_a1(x) result(res)
+   function bigend32_a1(x) result(res)
       real(real32), intent(in) :: x(:)
       real(real32) :: res(size(x, 1))
 
       if (.not. littleendian) then
          res = x
       else
-         res = SwapB(x)
+         res = swapb(x)
       endif
    end function
 
-   function BigEnd32_a2(x) result(res)
+   function bigend32_a2(x) result(res)
       real(real32), intent(in) :: x(:, :)
       real(real32) :: res(size(x, 1), size(x, 2))
 
       if (.not. littleendian) then
          res = x
       else
-         res = SwapB(x)
+         res = swapb(x)
       endif
    end function
 
-   function BigEnd32_a3(x) result(res)
+   function bigend32_a3(x) result(res)
       real(real32), intent(in) :: x(:, :, :)
       real(real32) :: res(size(x, 1), size(x, 2), size(x, 3))
 
       if (.not. littleendian) then
          res = x
       else
-         res = SwapB(x)
+         res = swapb(x)
       endif
    end function
 
-   function BigEnd32_a4(x) result(res)
+   function bigend32_a4(x) result(res)
       real(real32), intent(in) :: x(:, :, :, :)
       real(real32) :: res(size(x, 1), size(x, 2), size(x, 3), size(x, 4))
 
       if (.not. littleendian) then
          res = x
       else
-         res = SwapB(x)
+         res = swapb(x)
       endif
    end function
 
-   function BigEnd64(x) result(res)
+   function bigend64(x) result(res)
       real(real64), intent(in) :: x
       real(real64) :: res
 
       if (.not. littleendian) then
          res = x
       else
-         res = SwapB(x)
+         res = swapb(x)
       endif
    end function
 
-   function BigEnd64_a1(x) result(res)
+   function bigend64_a1(x) result(res)
       real(real64), intent(in) :: x(:)
       real(real64) :: res(size(x, 1))
 
       if (.not. littleendian) then
          res = x
       else
-         res = SwapB(x)
+         res = swapb(x)
       endif
    end function
 
-   function BigEnd64_a2(x) result(res)
+   function bigend64_a2(x) result(res)
       real(real64), intent(in) :: x(:, :)
       real(real64) :: res(size(x, 1), size(x, 2))
 
       if (.not. littleendian) then
          res = x
       else
-         res = SwapB(x)
+         res = swapb(x)
       endif
    end function
 
-   function BigEnd64_a3(x) result(res)
+   function bigend64_a3(x) result(res)
       real(real64), intent(in) :: x(:, :, :)
       real(real64) :: res(size(x, 1), size(x, 2), size(x, 3))
 
       if (.not. littleendian) then
          res = x
       else
-         res = SwapB(x)
+         res = swapb(x)
       endif
    end function
 
-   function BigEnd64_a4(x) result(res)
+   function bigend64_a4(x) result(res)
       real(real64), intent(in) :: x(:, :, :, :)
       real(real64) :: res(size(x, 1), size(x, 2), size(x, 3), size(x, 4))
 
       if (.not. littleendian) then
          res = x
       else
-         res = SwapB(x)
+         res = swapb(x)
       endif
    end function
 
@@ -193,7 +193,6 @@ contains
       equivalence(t, rt)
 
       rbytes = x
-
       t = ichar(bytes(8:8), int64)
       t = ior(ishftc(ichar(bytes(7:7), int64), 8), t)
       t = ior(ishftc(ichar(bytes(6:6), int64), 16), t)
@@ -202,19 +201,16 @@ contains
       t = ior(ishftc(ichar(bytes(3:3), int64), 40), t)
       t = ior(ishftc(ichar(bytes(2:2), int64), 48), t)
       t = ior(ishftc(ichar(bytes(1:1), int64), 56), t)
-
       res = rt
    end function
 
-end module Endianness
+end module
 
 module vtkarray
-   !Simple module to output arrays for visualization. No physical coordinates are used, only the position in the array.
-   !Mostly only for debugging.
-
+   ! Simple module to output arrays for visualization. No physical coordinates are used, only the position in the array.
+   ! Mostly only for debugging.
    use iso_fortran_env, only : real32, real64
-   use Endianness, only : BigEnd
-
+   use endianness, only : bigend
    implicit none
 
    interface VtkArrayAscii
@@ -228,15 +224,12 @@ module vtkarray
    end interface
 
    character, parameter :: lf = achar(10)
-
 contains
-   subroutine SVtkArrayAscii(fname, A)
-      character(len=*), intent(in) :: fname
+   subroutine svtkarrayascii(fname, A)
+      character(*), intent(in) :: fname
       real(real32), intent(in) :: A(:, :, :)
-      integer :: nx, ny, nz
-      integer :: i
-      integer :: unit
-      character(len=40) :: str
+      integer :: nx, ny, nz, i, unit
+      character(40) :: str
 
       nx = ubound(A, 1)
       ny = ubound(A, 2)
@@ -266,7 +259,6 @@ contains
       write(str(12:), *) nx * ny * nz
       write(unit, "(A)") trim(str)
 
-
       write(unit, "(A)") "SCALARS array float"
       write(unit, "(A)") "LOOKUP_TABLE default"
 
@@ -274,16 +266,13 @@ contains
 
       write(unit, *)
       close(unit)
-
    end subroutine
 
-   subroutine DVtkArrayAscii(fname, A)
-      character(len=*), intent(in) :: fname
-      real(real64), intent(in) :: A(:, :, :)
-      integer :: nx, ny, nz
-      integer :: i
-      integer :: unit
-      character(len=40) :: str
+   subroutine dvtkarrayascii(fname, a)
+      character(*), intent(in) :: fname
+      real(real64), intent(in) :: a(:, :, :)
+      integer :: nx, ny, nz, i, unit
+      character(40) :: str
 
       nx = ubound(A, 1)
       ny = ubound(A, 2)
@@ -316,23 +305,18 @@ contains
 
       write(unit, "(A)") "SCALARS array double"
       write(unit, "(A)") "LOOKUP_TABLE default"
-
       write(unit, '(*(g0,/))') A(1:nx, 1:ny, 1:nz)
 
       write(unit, *)
       close(unit)
-
    end subroutine
 
-   subroutine SVtkArrayBin(fname, A, offsets)
-      character(len=*), intent(in) :: fname
-      real(real32), intent(in) :: A(:, :, :)
+   subroutine svtkarraybin(fname, a, offsets)
+      character(*), intent(in) :: fname
+      real(real32), intent(in) :: a(:, :, :)
       integer, optional, intent(in) :: offsets(3)
-      integer :: nx, ny, nz
-      integer :: i
-      integer :: unit
-      integer :: offs(3)
-      character(len=70) :: str
+      integer :: nx, ny, nz, i, unit, offs(3)
+      character(70) :: str
 
       nx = ubound(A, 1)
       ny = ubound(A, 2)
@@ -367,25 +351,20 @@ contains
       str = "POINT_DATA"
       write(str(12:), *) nx * ny * nz
       write(unit) str, lf
-
 
       write(unit) "SCALARS array float", lf
       write(unit) "LOOKUP_TABLE default", lf
 
       write(unit) Bigend(A(1:nx, 1:ny, 1:nz)), lf
       close(unit)
-
    end subroutine
 
-   subroutine DVtkArrayBin(fname, A, offsets)
-      character(len=*), intent(in) :: fname
-      real(real64), intent(in) :: A(:, :, :)
+   subroutine dvtkarraybin(fname, a, offsets)
+      character(*), intent(in) :: fname
+      real(real64), intent(in) :: a(:, :, :)
       integer, optional, intent(in) :: offsets(3)
-      integer :: nx, ny, nz
-      integer :: i
-      integer :: unit
-      integer :: offs(3)
-      character(len=70) :: str
+      integer :: nx, ny, nz, i, unit, offs(3)
+      character(70) :: str
 
       nx = ubound(A, 1)
       ny = ubound(A, 2)
@@ -421,12 +400,10 @@ contains
       write(str(12:), *) nx * ny * nz
       write(unit) str, lf
 
-
       write(unit) "SCALARS array float", lf
       write(unit) "LOOKUP_TABLE default", lf
 
       write(unit) BigEnd(real(A(1:nx, 1:ny, 1:nz), real32)), lf
-
       close(unit)
    end subroutine
 end module

@@ -580,7 +580,7 @@ program testpoisson_hybrid
 
    implicit none
 
-   integer(c_intptr_t) :: ng(3) = [21,32,25] ! [131, 123, 127]
+   integer(c_intptr_t) :: ng(3) = [21,32,43] ! [131, 123, 127] 
    real(rp), dimension(:, :, :), allocatable :: phi, rhs
    real(rp) :: dx, dy, dz, ls(3)
    integer i, j, k

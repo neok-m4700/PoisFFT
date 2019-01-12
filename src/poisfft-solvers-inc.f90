@@ -1,5 +1,5 @@
 subroutine poisfft_solver1d_fullperiodic(self, phi, rhs)
-   type(PoisFFT_Solver1D), intent(inout) :: self
+   type(poisfft_solver1d), intent(inout) :: self
    real(RP), intent(out) :: phi(:)
    real(RP), intent(in) :: rhs(:)
    integer i
