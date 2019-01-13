@@ -68,7 +68,7 @@ subroutine poisfft_solver1d_fulldirichlet(self, phi, rhs)
    type(poisfft_solver1d), intent(inout) :: self
    real(RP), intent(out) :: phi(:)
    real(RP), intent(in) :: rhs(:)
-   integer i
+   integer :: i
 
    ! forward fft of rhs
    self % rwork = rhs
@@ -82,7 +82,7 @@ subroutine poisfft_solver1d_fullneumann(self, phi, rhs)
    type(poisfft_solver1d), intent(inout) :: self
    real(RP), intent(out) :: phi(:)
    real(RP), intent(in) :: rhs(:)
-   integer i
+   integer :: i
 
    ! forward fft of rhs
    self % rwork = rhs
@@ -97,7 +97,7 @@ subroutine poisfft_solver2d_fullperiodic(self, phi, rhs)
    type(poisfft_solver2d), intent(inout) :: self
    real(RP), intent(out) :: phi(:, :)
    real(RP), intent(in) :: rhs(:, :)
-   integer i, j
+   integer :: i, j
 
    ! Forward FFT of RHS
    self % cwork = cmplx(RHS, real(0., RP), CP)
@@ -128,7 +128,7 @@ subroutine poisfft_solver2d_fulldirichlet(self, phi, rhs)
    type(poisfft_solver2d), intent(inout) :: self
    real(RP), intent(out) :: phi(:, :)
    real(RP), intent(in) :: rhs(:, :)
-   integer i, j
+   integer :: i, j
 
    ! forward fft of rhs
    self % rwork = rhs
@@ -147,7 +147,7 @@ subroutine poisfft_solver2d_fullneumann(self, phi, rhs)
    type(poisfft_solver2d), intent(inout) :: self
    real(RP), intent(out) :: phi(:, :)
    real(RP), intent(in) :: rhs(:, :)
-   integer i, j
+   integer :: i, j
 
    ! forward fft of rhs
    self % rwork = rhs
@@ -166,7 +166,7 @@ subroutine poisfft_solver3d_fullperiodic(self, phi, rhs)
    type(poisfft_solver3d), intent(inout) :: self
    real(RP), intent(out) :: phi(:, :, :)
    real(RP), intent(in) :: rhs(:, :, :)
-   integer i, j, k
+   integer :: i, j, k
 
    !$omp parallel private(i,j,k)
 
@@ -219,7 +219,7 @@ subroutine poisfft_solver3d_fulldirichlet(self, phi, rhs)
    type(poisfft_solver3d), intent(inout) :: self
    real(RP), intent(out) :: phi(:, :, :)
    real(RP), intent(in) :: rhs(:, :, :)
-   integer i, j, k
+   integer :: i, j, k
 
    !$omp parallel private(i,j,k)
 
@@ -264,7 +264,7 @@ subroutine poisfft_solver3d_fullneumann(self, phi, rhs)
    type(poisfft_solver3d), intent(inout) :: self
    real(RP), intent(out) :: phi(:, :, :)
    real(RP), intent(in) :: rhs(:, :, :)
-   integer i, j, k
+   integer :: i, j, k
 
    !$omp parallel private(i,j,k)
 

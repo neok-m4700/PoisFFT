@@ -439,9 +439,7 @@ contains
       integer, intent(in) :: nx, ny, nz
       real(knd), dimension(0:nx + 1, 0:ny + 1, 0:nz + 1), intent(inout) :: phi
       real(knd), dimension(1:nx, 1:ny, 1:nz), intent(in) :: rhs
-      real(knd), intent(in) :: aw, ae
-      real(knd), intent(in) :: as, an
-      real(knd), intent(in) :: ab, at
+      real(knd), intent(in) :: aw, ae, as, an, ab, at
       real(knd), intent(out) :: r
       integer i, j, k
       real(knd) :: p, ap
@@ -480,8 +478,7 @@ contains
       integer, intent(in) :: nx, ny
       real(knd), dimension(0:nx + 1, 0:ny + 1), intent(inout) :: phi
       real(knd), dimension(1:nx, 1:ny), intent(in) :: rhs
-      real(knd), intent(in) :: aw, ae
-      real(knd), intent(in) :: as, an
+      real(knd), intent(in) :: aw, ae, as, an
       real(knd), intent(out) :: r
       integer i, j, k
       real(knd) :: p, ap
@@ -504,7 +501,6 @@ contains
       end do
 
       call mpi_allreduce(mpi_in_place, r, 1, mpi_rp, mpi_max, glob_comm, ie)
-
    end subroutine
 end module subs
 
@@ -517,7 +513,6 @@ program testpoisson_hybrid
       poisfft_solver3d => poisfft_solver3d_dp
    use my_mpi
    use subs
-
    implicit none
 
    integer(c_intptr_t) :: ng(3) = [21, 32, 43] ! [131, 123, 127] 
@@ -577,14 +572,14 @@ program testpoisson_hybrid
       call get_command_argument(1, value=ch50)
       read(ch50, *, iostat=ie) npxyz
       if (ie /= 0) then
-         write(*, *) 'The process grid should be provided as "npx, npy, npz" where nxp,npy and npz are integers.'
+         write(*, *) 'the process grid should be provided as "npx, npy, npz" where nxp,npy and npz are integers.'
          stop
       end if
    else
       npxyz(1) = 1
       npxyz(2) = nint(sqrt(real(nims)))
       npxyz(3) = nims / npxyz(2)
-      if (master) write (*, *) 'Trying to decompose in', npxyz, 'process grid.'
+      if (master) write (*, *) 'trying to decompose in', npxyz, 'process grid.'
    end if
 
    if (command_argument_count() >= 2) then
@@ -598,23 +593,23 @@ program testpoisson_hybrid
 
    if (product(npxyz) /= nims) then
       if (master) then
-         write(*, *) 'Could not decompose the processes to N x N grid.'
-         write(*, *) 'Try a perfect square for number of processes.'
+         write(*, *) 'could not decompose the processes to n x n grid.'
+         write(*, *) 'try a perfect square for number of processes.'
       end if
       call error_stop(25)
    end if
 
-   call PoisFFT_InitMPIGrid(glob_comm, npxyz(3:2:-1), cart_comm, ie)
+   call poisfft_initmpigrid(glob_comm, npxyz(3:2:-1), cart_comm, ie)
    if (ie /= 0) call error_stop(30)
 
    call get_image_coords
 
-   call PoisFFT_LocalGridSize(3, ng, cart_comm, nxyz, off, nxyz2, nsxyz2)
+   call poisfft_localgridsize(3, ng, cart_comm, nxyz, off, nxyz2, nsxyz2)
    if (any(nxyz /= nxyz2) .or. any(off /= nsxyz2)) call error_stop(40)
 
    if (any(nxyz == 0)) then
-      write(*, *) 'Process', pxyz, 'has grid dimensions', nxyz, '.'
-      write(*, *) 'Try different process grid distribution.'
+      write(*, *) 'process', pxyz, 'has grid dimensions', nxyz, '.'
+      write(*, *) 'try different process grid distribution.'
       call error_stop(45)
    end if
 
@@ -622,36 +617,35 @@ program testpoisson_hybrid
    ny = nxyz(2)
    nz = nxyz(3)
 
-   Ls = [2 * pi, 2 * pi, 2 * pi]
-   dx = Ls(1) / ng(1)
-   dy = Ls(2) / ng(2)
-   dz = Ls(3) / ng(3)
+   ls = [2 * pi, 2 * pi, 2 * pi]
+   dx = ls(1) / ng(1)
+   dy = ls(2) / ng(2)
+   dz = ls(3) / ng(3)
 
-   allocate(RHS(nx, ny, nz), stat=ie)
+   allocate(rhs(nx, ny, nz), stat=ie)
    if (ie /= 0) call error_stop(50)
 
-   allocate(Phi(0:nx + 1, 0:ny + 1, 0:nz + 1))
+   allocate(phi(0:nx + 1, 0:ny + 1, 0:nz + 1))
    if (ie /= 0) call error_stop(60)
-
 
    call random_seed(put=[(0, i=1, 100)])
 
    do k = 1, nz
       do j = 1, ny
          do i = 1, nx
-            x = (i + off(1) - 1._RP / 2) * dx
-            y = (j + off(2) - 1._RP / 2) * dy
-            z = (k + off(3) - 1._RP / 2) * dz
-            call random_number(RHS(i, j, k))
-            call random_number(Phi(i, j, k))
-            !      RHS(i,j,k) = x * sin(y) / (abs(z)+0.1)
-            !      PHI(i,j,k) = x * sin(y) / (abs(z)+0.1)
+            x = (i + off(1) - 1._rp / 2) * dx
+            y = (j + off(2) - 1._rp / 2) * dy
+            z = (k + off(3) - 1._rp / 2) * dz
+            call random_number(rhs(i, j, k))
+            call random_number(phi(i, j, k))
+            ! rhs(i,j,k) = x * sin(y) / (abs(z)+0.1)
+            ! phi(i,j,k) = x * sin(y) / (abs(z)+0.1)
 
-            !        x = dx*(i + off(1) - 0.5_rp)
-            !        y = dy*(j + off(2) - 0.5_rp)
-            !        z = dz*(k + off(3) - 0.5_rp)
-            !        RHS(i,j,k) = sin(3*pi*x/Ls(1)) * sin(5*pi*y/Ls(2)) *sin(7*pi*z/Ls(3))
-            !        Phi(i,j,k) = RHS(i,j,k)
+            ! x = dx*(i + off(1) - 0.5_rp)
+            ! y = dy*(j + off(2) - 0.5_rp)
+            ! z = dz*(k + off(3) - 0.5_rp)
+            ! rhs(i,j,k) = sin(3*pi*x/ls(1)) * sin(5*pi*y/ls(2)) *sin(7*pi*z/ls(3))
+            ! phi(i,j,k) = rhs(i,j,k)
          end do
       end do
    end do
@@ -779,7 +773,6 @@ contains
       if (master) write (*, *) 'r2:', r
       if (master) write(*, *) '--------'
    end subroutine
-
 
    subroutine save_vtk
       use endianness

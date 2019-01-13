@@ -1,23 +1,23 @@
 #if (DIM==1)
 
-#define POISFFT_SOLVERXD PoisFFT_Solver1D
-#define POISFFT_PLANXD   PoisFFT_Plan1D
+#define POISFFT_SOLVERXD poisfft_solver1d
+#define POISFFT_PLANXD   poisfft_plan1d
 #define REALPLANTYPES    plantypes(1)
 #define NXYZS            self%gnx
 #define COLONS           :
 
 #elif (DIM==2)
 
-#define POISFFT_SOLVERXD PoisFFT_Solver2D
-#define POISFFT_PLANXD   PoisFFT_Plan2D
+#define POISFFT_SOLVERXD poisfft_solver2d
+#define POISFFT_PLANXD   poisfft_plan2d
 #define REALPLANTYPES    plantypes(1),plantypes(2)
 #define NXYZS            self%gny,self%gnx
 #define COLONS           :,:
 
 #else
 
-#define POISFFT_SOLVERXD PoisFFT_Solver3D
-#define POISFFT_PLANXD   PoisFFT_Plan3D
+#define POISFFT_SOLVERXD poisfft_solver3d
+#define POISFFT_PLANXD   poisfft_plan3d
 #define REALPLANTYPES    plantypes(1),plantypes(2),plantypes(3)
 #define NXYZS            self%gnz,self%gny,self%gnx
 #define COLONS           :,:,:

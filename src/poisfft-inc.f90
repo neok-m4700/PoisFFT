@@ -1,4 +1,4 @@
-#if PREC == 2
+#if (PREC==2)
 
 #define RP drp
 #define CP dcp
@@ -105,13 +105,13 @@ function poisfft_solver3d__new(nxyz, lxyz, bcs, approximation, gnxyz, offs, mpi_
       self % mpi % comm = mpi_comm
 #ifdef MPI
    else
-      stop 'No PFFT comm present in PoisFFT_Solver3D__New.'
+      stop 'no pfft comm present in poisfft_solver3d__new.'
 #endif
    end if
 
    self % nthreads = merge(nthreads, 1, present(nthreads))
 
-   !create fftw plans and allocate working arrays
+   ! create fftw plans and allocate working arrays
    call init(self)
 end function
 
@@ -279,7 +279,7 @@ subroutine poisfft_solver3d_init(self)
       real_back = real_transform_type_backward(self % bcs(3))
 
 #ifdef MPI
-      !1..x, 2..y, 3..z, not different threads, but directions
+      ! 1..x, 2..y, 3..z, not different threads, but directions
       allocate(self % solvers1d(3 * self % nthreads))
 
       self % solvers1d(1) = poisfft_solver1d_from3d(self, 1)
@@ -494,7 +494,7 @@ function poisfft_solver1d_from3d(d3d, direction) result(self)
    if (ie /= 0) stop 'error executing mpi_cartdim_get.'
 
    if (dims == 2) then
-      !we see the dimensions reversed in fortran!
+      ! we see the dimensions reversed in fortran!
       select case(direction)
        case(1)
          self % mpi % comm = mpi_comm_self
@@ -549,7 +549,7 @@ function poisfft_solver2d_from3d(d3d, direction) result(self)
    if (ie /= 0) stop 'error executing mpi_cartdim_get.'
 
    if (dims == 2) then
-      !we see the dimensions reversed in fortran!
+      ! we see the dimensions reversed in fortran!
       select case(direction)
        case(1)
          self % mpi % comm = d3d % mpi % comm
@@ -606,11 +606,7 @@ function poisfft_solver2d__new(nxyz, lxyz, bcs, approximation, gnxyz, offs, mpi_
    integer, intent(in) :: nxyz(2)
    real(RP), intent(in) :: lxyz(2)
    integer, intent(in) :: bcs(4)
-   integer, intent(in), optional :: approximation
-   integer, intent(in), optional :: gnxyz(2)
-   integer, intent(in), optional :: offs(2)
-   integer, intent(in), optional :: mpi_comm
-   integer, intent(in), optional :: nthreads
+   integer, intent(in), optional :: approximation, gnxyz(2), offs(2), mpi_comm, nthreads
 
    self % nxyz = nxyz
 
@@ -643,13 +639,13 @@ function poisfft_solver2d__new(nxyz, lxyz, bcs, approximation, gnxyz, offs, mpi_
       self % mpi % comm = mpi_comm
 #ifdef MPI
    else
-      stop 'No PFFT comm present in PoisFFT_Solver2D__New.'
+      stop 'no pfft comm present in poisfft_solver2d__new.'
 #endif
    end if
 
    self % nthreads = merge(nthreads, 1, present(nthreads))
 
-   !create fftw plans and allocate working array
+   ! create fftw plans and allocate working array
    call init(self)
 end function
 
@@ -745,11 +741,7 @@ function poisfft_solver1d__new(nxyz, lxyz, bcs, approximation, gnxyz, offs, mpi_
    integer, intent(in) :: nxyz(1)
    real(RP), intent(in) :: lxyz(1)
    integer, intent(in) :: bcs(2)
-   integer, intent(in), optional :: approximation
-   integer, intent(in), optional :: gnxyz(1)
-   integer, intent(in), optional :: offs(1)
-   integer, intent(in), optional :: mpi_comm
-   integer, intent(in), optional :: nthreads
+   integer, intent(in), optional :: approximation, gnxyz(1), offs(1), mpi_comm, nthreads
 #ifdef MPI
    integer :: ie, dims
 #endif
@@ -775,16 +767,16 @@ function poisfft_solver1d__new(nxyz, lxyz, bcs, approximation, gnxyz, offs, mpi_
       self % mpi % comm = mpi_comm
 #ifdef MPI
       call MPI_Cartdim_get(self % mpi % comm, dims, ie)
-      if (ie /= 0) stop 'Error executing MPI_Cartdim_get.'
+      if (ie /= 0) stop 'error executing mpi_cartdim_get.'
       self % mpi_transpose_needed = dims > 0
    else
-      stop 'No PFFT comm present in PoisFFT_Solver1D__New.'
+      stop 'no pfft comm present in poisfft_solver1d__new.'
 #endif
    end if
 
    self % nthreads = merge(nthreads, 1, present(nthreads))
 
-   !create fftw plans and allocate working array
+   ! create fftw plans and allocate working array
    call init(self)
 end function
 
@@ -873,11 +865,7 @@ function eigenvalues(f, bcs, l, n, gn, off) result(res)
 
    if (all(bcs == poisfft_periodic)) then
       do i = 1, n
-         if (i + off < gn / 2) then
-            res(i) = f((i - 1 + off) * dkx)
-         else
-            res(i) = f((gn - (i - 1 + off)) * dkx)
-         end if
+         res(i) = f(merge(i - 1 + off, gn - (i - 1 + off), i + off < gn / 2) * dkx)
       end do
    else if (all(bcs == poisfft_dirichlet)) then
       forall(i=1:n) res(i) = f((i + off) * dkx_h)
@@ -964,7 +952,7 @@ subroutine init_mpi_buffers(self, dir)
    type(mpi_vars_1d), pointer :: mpi
    integer :: i, ie
 
-   mpi => self % Solvers1D(dir) % mpi
+   mpi => self % solvers1d(dir) % mpi
 
    allocate(mpi % snxs(mpi % np), mpi % snzs(mpi % np), mpi % rnxs(mpi % np), mpi % rnzs(mpi % np))
    allocate(mpi % sumrnzs(mpi % np))
@@ -986,13 +974,8 @@ subroutine init_mpi_buffers(self, dir)
       call mpi_alltoall(mpi % scounts, 1, mpi_integer, mpi % rcounts, 1, mpi_integer, mpi % comm, ie)
 
       mpi % rdispls(1) = 0
-      do i = 2, mpi % np
-         mpi % rdispls(i) = mpi % rdispls(i - 1) + mpi % rcounts(i - 1)
-      end do
-
-      do i = 1, mpi % np
-         mpi % sumrnzs(i) = sum(mpi % rnzs(1:i - 1))
-      end do
+      do i = 2, mpi % np; mpi % rdispls(i) = mpi % rdispls(i - 1) + mpi % rcounts(i - 1); end do
+      do i = 1, mpi % np;  mpi % sumrnzs(i) = sum(mpi % rnzs(1:i - 1)); end do
 
       allocate(mpi % tmp1(1:self % ny, 1:self % nz, 1:self % nx))
       allocate(mpi % tmp2(0:sum(mpi % rcounts) - 1))

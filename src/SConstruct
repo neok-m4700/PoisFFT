@@ -58,34 +58,34 @@ else:
 
 omp_libs = ()
 if COMP == 'sun':
+    comp_dir = 'sun'
     # env = Environment(tools=['link', 'sunf90', 'sunf95', 'suncc', 'sunc++'])
     omp_flag = ' -openmp' if OPENMP else ''
     env.Append(F90FLAGS='-fpp -xpp=cpp -g -fast -fPIC -DNO_CONTIGUOUS')
     env.Replace(SHF90FLAGS=('$F90FLAGS', '-fPIC'))
     env.Replace(SHLINKFLAGS=('$LINKFLAGS', '-G'))
-    comp_dir = 'sun'
 
     debug_flag = ' -C' if DEBUG else ''
     env.Append(FORTRANMODDIRPREFIX='-moddir=', INCPREFIX='-M')
     fortran_libs = ()
 
 elif COMP == 'intel':
+    comp_dir = 'intel'
     # env = Environment(tools=['default','ifort','intelc'])
     omp_flag = ' -openmp' if OPENMP else ''
     env.Append(F90FLAGS='-cpp -g -O3')
-    comp_dir = 'intel'
 
     debug_flag = ' -check all,noarg_temp_created -traceback' if DEBUG else ''
     fortran_libs = ('ifcore', 'ifcoremt')
 
 else:
-    env.Append(F90FLAGS='-cpp -g -O3 -fbacktrace -ffree-line-length-0')
+    comp_dir = 'gcc'
+    env.Append(F90FLAGS='-cpp -g -ggdb3 -O3 -fbacktrace -ffree-line-length-0 -fcoarray=single')
     if WARNINGS:
         env.Append(F90FLAGS='-Wall -Wsurprising -Wno-unused-function -Wno-unused-dummy-argument')
 
     omp_flag = ' -fopenmp' if OPENMP else ''
     omp_libs = ('gomp',) if OPENMP else ()
-    comp_dir = 'gcc'
 
     debug_flag = ' -fcheck=all -ffpe-trap=zero,overflow,invalid' if DEBUG else ''  # -fcheck=bounds,pointer
     debug_flag += ' -fsanitize=undefined,address,null -fbacktrace' if SANITIZE else ''

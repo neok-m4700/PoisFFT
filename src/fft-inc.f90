@@ -42,16 +42,14 @@ integer, parameter :: fft_distributed_pfft = 2
 
 type poisfft_plan1d
    type(c_ptr) :: planptr = c_null_ptr
-   logical :: planowner = .false.
-   logical :: distributed = .false.
+   logical :: planowner = .false., distributed = .false.
    integer(c_int) :: dir
 end type
 
 
 type poisfft_plan2d
    type(c_ptr) :: planptr = c_null_ptr
-   logical :: planowner = .false.
-   logical :: distributed = .false.
+   logical :: planowner = .false., distributed = .false.
    integer :: method = fft_distributed_pfft
    integer(c_int) :: dir
 end type
@@ -59,8 +57,7 @@ end type
 
 type poisfft_plan3d
    type(c_ptr) :: planptr = c_null_ptr
-   logical :: planowner = .false.
-   logical :: distributed = .false.
+   logical :: planowner = .false., distributed = .false.
    integer(c_int) :: dir
 end type
 
@@ -230,54 +227,50 @@ end function
 
 subroutine allocate_fftw_1D_complex(self)
 #define DIM 1
-#define REALCOMPLEX 2
-
+#define ISREAL 0
 #include "allocate_fftw-inc.f90"
-
 #undef DIM
-#undef REALCOMPLEX
+#undef ISREAL
 end subroutine
 
 subroutine allocate_fftw_1d_real(self)
 #define DIM 1
-#define REALCOMPLEX 1
-
+#define ISREAL 1
 #include "allocate_fftw-inc.f90"
-
 #undef DIM
-#undef REALCOMPLEX
+#undef ISREAL
 end subroutine
 
 subroutine allocate_fftw_2d_complex(self)
 #define DIM 2
-#define REALCOMPLEX 2
+#define ISREAL 0
 #include "allocate_fftw-inc.f90"
 #undef DIM
-#undef REALCOMPLEX
+#undef ISREAL
 end subroutine
 
 subroutine allocate_fftw_2d_real(self)
 #define DIM 2
-#define REALCOMPLEX 1
+#define ISREAL 1
 #include "allocate_fftw-inc.f90"
 #undef DIM
-#undef REALCOMPLEX
+#undef ISREAL
 end subroutine
 
 subroutine allocate_fftw_3d_complex(self)
 #define DIM 3
-#define REALCOMPLEX 2
+#define ISREAL 0
 #include "allocate_fftw-inc.f90"
 #undef DIM
-#undef REALCOMPLEX
+#undef ISREAL
 end subroutine
 
 subroutine allocate_fftw_3d_real(self)
 #define DIM 3
-#define REALCOMPLEX 1
+#define ISREAL 1
 #include "allocate_fftw-inc.f90"
 #undef DIM
-#undef REALCOMPLEX
+#undef ISREAL
 end subroutine
 
 subroutine poisfft_plan1d_execute_complex(plan, data)
@@ -301,7 +294,7 @@ end subroutine
 subroutine poisfft_plan2d_execute_real(plan, data)
    type(poisfft_plan2d), intent(in) :: plan
    real(RP), dimension(:, :) CONTIG :: data
-   ! write(ferr, *) 'shape(data)=', shape(data)
+   ! write(ferr, *) 'shape(data)=', shape(data), ' c_associated(planptr)=', c_associated(plan % planptr)
    call FFTW_EXECUTE_REAL(plan % planptr, data, data)
 end subroutine
 
@@ -331,7 +324,7 @@ subroutine poisfft_plan2d_execute_mpi(plan, data)
       if (present(data)) then
          call FFTW_MPI_EXECUTE_COMPLEX(plan % planptr, data, data)
       else
-         stop 'Error, missing `data` argument in a call to Execute_MPI with FFTW.'
+         stop 'error, missing `data` argument in a call to execute_mpi with fftw.'
       end if
    else
       call PFFT_EXECUTE_GEN(plan % planptr)
@@ -429,7 +422,7 @@ subroutine poisfft_initthreads(nthreads) !instructs fftw to plan to use nthreads
    error = fftw_init_threads()
 
    if (error == 0) then
-      write(*, *) 'Error when initializing FFTW for threads.'
+      write(ferr, *) 'error when initializing fftw for threads.'
    else
       call fftw_plan_with_nthreads(int(nthreads, c_int))
    end if
