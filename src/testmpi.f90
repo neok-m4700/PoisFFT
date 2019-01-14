@@ -570,7 +570,7 @@ program testpoisson_mpi
       npxyz(1) = 1
       npxyz(2) = nint(sqrt(real(nimg)))
       npxyz(3) = nimg / npxyz(2)
-      if (rt) write (*, *) 'trying to decompose in', npxyz, 'process grid.'
+      if (rt) write(*, *) 'trying to decompose in', npxyz, 'process grid.'
    end if
 
    if (command_argument_count() >= 2) then
@@ -670,7 +670,7 @@ contains
       call exchange_boundaries_3d(glob_comm, phi, nx, ny, nz, bcs)
       call res3d(nx, ny, nz, phi, rhs, dx**(-2), dx**(-2), dy**(-2), dy**(-2), dz**(-2), dz**(-2), r)
 
-      if (rt) write (*, *) 'r1:', r
+      if (rt) write(*, *) 'r1:', r
       solver3d = poisfft_solver3d([nx, ny, nz], ls, bcs, poisfft_finitedifference2, int(ng), int(off), cart_comm)
 
       do i = 1, 2
@@ -684,7 +684,7 @@ contains
       call exchange_boundaries_3d(glob_comm, phi, nx, ny, nz, bcs)
       call res3d(nx, ny, nz, phi, rhs, dx**(-2), dx**(-2), dy**(-2), dy**(-2), dz**(-2), dz**(-2), r)
 
-      if (rt) write (*, *) 'r2:', r
+      if (rt) write(*, *) 'r2:', r
       if (rt) write(ferr, *) '--------'
    end subroutine
 
@@ -700,7 +700,7 @@ contains
       call exchange_boundaries_2d(glob_comm, phi(:, :, 1), nx, ny, bcs)
       call res2d(nx, ny, phi(:, :, 1), rhs(:, :, 1), dx**(-2), dx**(-2), dy**(-2), dy**(-2), r)
 
-      if (rt) write (*, *) 'r1:', r
+      if (rt) write(*, *) 'r1:', r
       solver2d = poisfft_solver2d([nx, ny], ls(1:2), bcs, poisfft_finitedifference2, int(ng(1:2)), int(off(1:2)), sub_comm)
 
       do i = 1, 1
@@ -714,7 +714,7 @@ contains
       call exchange_boundaries_2d(glob_comm, phi(:, :, 1), nx, ny, bcs)
       call res2d(nx, ny, phi(:, :, 1), rhs(:, :, 1), dx**(-2), dx**(-2), dy**(-2), dy**(-2), r)
 
-      if (rt) write (*, *) 'r2:', r
+      if (rt) write(*, *) 'r2:', r
       if (rt) write(ferr, *) '--------'
    end subroutine
 
@@ -729,7 +729,7 @@ contains
       ! call exchange_boundaries_1d(glob_comm, phi(:,:,1), nx, bcs)
       ! call res1d(nx,ny,phi(:,1,1),rhs(:,1,1), dx**(-2),dx**(-2), r)
 
-      if (rt) write (*, *) 'r1:', r
+      if (rt) write(*, *) 'r1:', r
       solver1d = poisfft_solver1d([ny], ls(1:1), bcs, poisfft_finitedifference2, int(ng(2:2)), int(off(2:2)), sub_comm)
 
       do i = 1, 1
@@ -742,7 +742,7 @@ contains
 
       ! call exchange_boundaries_1d(glob_comm, phi(:,1,1), nx, ny, bcs)
       ! call res1d(nx,ny,phi(:,1,1),rhs(:,1,1), dx**(-2),dx**(-2), r)
-      if (rt) write (*, *) 'r2:', r
+      if (rt) write(*, *) 'r2:', r
       if (rt) write(ferr, *) '--------'
    end subroutine
 

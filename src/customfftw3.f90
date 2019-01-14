@@ -2,42 +2,17 @@ module fftw3
    use iso_c_binding
    integer, parameter :: c_fftw_r2r_kind = c_int32_t
 
-   integer(c_int), parameter :: fftw_r2hc = 0
-   integer(c_int), parameter :: fftw_hc2r = 1
-   integer(c_int), parameter :: fftw_dht = 2
-   integer(c_int), parameter :: fftw_redft00 = 3
-   integer(c_int), parameter :: fftw_redft01 = 4
-   integer(c_int), parameter :: fftw_redft10 = 5
-   integer(c_int), parameter :: fftw_redft11 = 6
-   integer(c_int), parameter :: fftw_rodft00 = 7
-   integer(c_int), parameter :: fftw_rodft01 = 8
-   integer(c_int), parameter :: fftw_rodft10 = 9
-   integer(c_int), parameter :: fftw_rodft11 = 10
-   integer(c_int), parameter :: fftw_forward = -1
-   integer(c_int), parameter :: fftw_backward = +1
-   integer(c_int), parameter :: fftw_measure = 0
-   integer(c_int), parameter :: fftw_destroy_input = 1
-   integer(c_int), parameter :: fftw_unaligned = 2
-   integer(c_int), parameter :: fftw_conserve_memory = 4
-   integer(c_int), parameter :: fftw_exhaustive = 8
-   integer(c_int), parameter :: fftw_preserve_input = 16
-   integer(c_int), parameter :: fftw_patient = 32
-   integer(c_int), parameter :: fftw_estimate = 64
-   integer(c_int), parameter :: fftw_estimate_patient = 128
-   integer(c_int), parameter :: fftw_believe_pcost = 256
-   integer(c_int), parameter :: fftw_no_dft_r2hc = 512
-   integer(c_int), parameter :: fftw_no_nonthreaded = 1024
-   integer(c_int), parameter :: fftw_no_buffering = 2048
-   integer(c_int), parameter :: fftw_no_indirect_op = 4096
-   integer(c_int), parameter :: fftw_allow_large_generic = 8192
-   integer(c_int), parameter :: fftw_no_rank_splits = 16384
-   integer(c_int), parameter :: fftw_no_vrank_splits = 32768
-   integer(c_int), parameter :: fftw_no_vrecurse = 65536
-   integer(c_int), parameter :: fftw_no_simd = 131072
-   integer(c_int), parameter :: fftw_no_slow = 262144
-   integer(c_int), parameter :: fftw_no_fixed_radix_large_n = 524288
-   integer(c_int), parameter :: fftw_allow_pruning = 1048576
-   integer(c_int), parameter :: fftw_wisdom_only = 2097152
+   integer(c_int), parameter :: fftw_r2hc = 0, fftw_hc2r = 1, fftw_dht = 2
+   integer(c_int), parameter :: fftw_redft00 = 3, fftw_redft01 = 4, fftw_redft10 = 5, fftw_redft11 = 6
+   integer(c_int), parameter :: fftw_rodft00 = 7, fftw_rodft01 = 8, fftw_rodft10 = 9, fftw_rodft11 = 10
+   integer(c_int), parameter :: fftw_forward = -1, fftw_backward = +1
+   integer(c_int), parameter :: fftw_measure = 0, fftw_destroy_input = 1
+   integer(c_int), parameter :: fftw_unaligned = 2, fftw_conserve_memory = 4, fftw_exhaustive = 8, fftw_preserve_input = 16
+   integer(c_int), parameter :: fftw_patient = 32, fftw_estimate = 64, fftw_estimate_patient = 128, fftw_believe_pcost = 256, fftw_no_dft_r2hc = 512
+   integer(c_int), parameter :: fftw_no_nonthreaded = 1024, fftw_no_buffering = 2048, fftw_no_indirect_op = 4096, fftw_allow_large_generic = 8192
+   integer(c_int), parameter :: fftw_no_rank_splits = 16384, fftw_no_vrank_splits = 32768, fftw_no_vrecurse = 65536
+   integer(c_int), parameter :: fftw_no_simd = 131072, fftw_no_slow = 262144, fftw_no_fixed_radix_large_n = 524288
+   integer(c_int), parameter :: fftw_allow_pruning = 1048576, fftw_wisdom_only = 2097152
 
    interface fftw_execute_gen
       subroutine fftw_execute_r2r(p, in, out) bind(c, name='fftw_execute_r2r')

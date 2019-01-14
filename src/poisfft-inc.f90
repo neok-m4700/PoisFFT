@@ -413,48 +413,28 @@ subroutine poisfft_solver3d__execute(self, phi, rhs)
 
    if (all(self % bcs == poisfft_periodic)) then
       call poisfft_solver3d_fullperiodic(self, &
-         phi(ngphi(1) + 1:ngphi(1) + self % nx, &
-         ngphi(2) + 1:ngphi(2) + self % ny, &
-         ngphi(3) + 1:ngphi(3) + self % nz), &
-         rhs(ngrhs(1) + 1:ngrhs(1) + self % nx, &
-         ngrhs(2) + 1:ngrhs(2) + self % ny, &
-         ngrhs(3) + 1:ngrhs(3) + self % nz))
+         phi(ngphi(1) + 1:ngphi(1) + self % nx, ngphi(2) + 1:ngphi(2) + self % ny, ngphi(3) + 1:ngphi(3) + self % nz), &
+         rhs(ngrhs(1) + 1:ngrhs(1) + self % nx, ngrhs(2) + 1:ngrhs(2) + self % ny, ngrhs(3) + 1:ngrhs(3) + self % nz))
 
    else if (all(self % bcs == poisfft_dirichlet) .or. all(self % bcs == poisfft_dirichletstag)) then
       call poisfft_solver3d_fulldirichlet(self, &
-         phi(ngphi(1) + 1:ngphi(1) + self % nx, &
-         ngphi(2) + 1:ngphi(2) + self % ny, &
-         ngphi(3) + 1:ngphi(3) + self % nz), &
-         rhs(ngrhs(1) + 1:ngrhs(1) + self % nx, &
-         ngrhs(2) + 1:ngrhs(2) + self % ny, &
-         ngrhs(3) + 1:ngrhs(3) + self % nz))
+         phi(ngphi(1) + 1:ngphi(1) + self % nx, ngphi(2) + 1:ngphi(2) + self % ny, ngphi(3) + 1:ngphi(3) + self % nz), &
+         rhs(ngrhs(1) + 1:ngrhs(1) + self % nx, ngrhs(2) + 1:ngrhs(2) + self % ny, ngrhs(3) + 1:ngrhs(3) + self % nz))
 
    else if (all(self % bcs == poisfft_neumann) .or. all(self % bcs == poisfft_neumannstag)) then
       call poisfft_solver3d_fullneumann(self, &
-         phi(ngphi(1) + 1:ngphi(1) + self % nx, &
-         ngphi(2) + 1:ngphi(2) + self % ny, &
-         ngphi(3) + 1:ngphi(3) + self % nz), &
-         rhs(ngrhs(1) + 1:ngrhs(1) + self % nx, &
-         ngrhs(2) + 1:ngrhs(2) + self % ny, &
-         ngrhs(3) + 1:ngrhs(3) + self % nz))
+         phi(ngphi(1) + 1:ngphi(1) + self % nx, ngphi(2) + 1:ngphi(2) + self % ny, ngphi(3) + 1:ngphi(3) + self % nz), &
+         rhs(ngrhs(1) + 1:ngrhs(1) + self % nx, ngrhs(2) + 1:ngrhs(2) + self % ny, ngrhs(3) + 1:ngrhs(3) + self % nz))
 
    else if (all(self % bcs(1:4) == poisfft_periodic) .and. (all(self % bcs(5:6) == poisfft_neumann) .or. all(self % bcs(5:6) == poisfft_neumannstag))) then
       call poisfft_solver3d_ppns(self, &
-         phi(ngphi(1) + 1:ngphi(1) + self % nx, &
-         ngphi(2) + 1:ngphi(2) + self % ny, &
-         ngphi(3) + 1:ngphi(3) + self % nz), &
-         rhs(ngrhs(1) + 1:ngrhs(1) + self % nx, &
-         ngrhs(2) + 1:ngrhs(2) + self % ny, &
-         ngrhs(3) + 1:ngrhs(3) + self % nz))
+         phi(ngphi(1) + 1:ngphi(1) + self % nx, ngphi(2) + 1:ngphi(2) + self % ny, ngphi(3) + 1:ngphi(3) + self % nz), &
+         rhs(ngrhs(1) + 1:ngrhs(1) + self % nx, ngrhs(2) + 1:ngrhs(2) + self % ny, ngrhs(3) + 1:ngrhs(3) + self % nz))
 
    else if (all(self % bcs(1:2) == poisfft_periodic) .and. (all(self % bcs(3:6) == poisfft_neumann) .or. all(self % bcs(3:6) == poisfft_neumannstag))) then
       call poisfft_solver3d_pnsns(self, &
-         phi(ngphi(1) + 1:ngphi(1) + self % nx, &
-         ngphi(2) + 1:ngphi(2) + self % ny, &
-         ngphi(3) + 1:ngphi(3) + self % nz), &
-         rhs(ngrhs(1) + 1:ngrhs(1) + self % nx, &
-         ngrhs(2) + 1:ngrhs(2) + self % ny, &
-         ngrhs(3) + 1:ngrhs(3) + self % nz))
+         phi(ngphi(1) + 1:ngphi(1) + self % nx, ngphi(2) + 1:ngphi(2) + self % ny, ngphi(3) + 1:ngphi(3) + self % nz), &
+         rhs(ngrhs(1) + 1:ngrhs(1) + self % nx, ngrhs(2) + 1:ngrhs(2) + self % ny, ngrhs(3) + 1:ngrhs(3) + self % nz))
    endif
 end subroutine
 
@@ -975,7 +955,7 @@ subroutine init_mpi_buffers(self, dir)
 
       mpi % rdispls(1) = 0
       do i = 2, mpi % np; mpi % rdispls(i) = mpi % rdispls(i - 1) + mpi % rcounts(i - 1); end do
-      do i = 1, mpi % np;  mpi % sumrnzs(i) = sum(mpi % rnzs(1:i - 1)); end do
+      do i = 1, mpi % np; mpi % sumrnzs(i) = sum(mpi % rnzs(1:i - 1)); end do
 
       allocate(mpi % tmp1(1:self % ny, 1:self % nz, 1:self % nx))
       allocate(mpi % tmp2(0:sum(mpi % rcounts) - 1))

@@ -44,12 +44,7 @@ logical :: distr
 distr = .false.
 
 if (plantypes(1) == fft_complex) then
-
-   if (size(plantypes) < 2) then
-      write(*, *) "Error: not enough flags when creating POISFFT_PLANXD"
-      STOP
-   endif
-
+   if (size(plantypes) < 2) stop 'error: not enough flags when creating poisfft_planxd'
    plan % dir = plantypes(2)
 
 #if defined(MPI) && (DIM>1)
@@ -78,10 +73,7 @@ if (plantypes(1) == fft_complex) then
 #endif
 
 else
-   if (size(plantypes) < DIM) then
-      write(*, *) "Error: not enough flags when creating POISFFT_PLANXD, there must be one per dimension."
-      STOP
-   endif
+   if (size(plantypes) < DIM) stop 'error: not enough flags when creating poisfft_planxd, there must be one per dimension.'
 
 #if defined(MPI) && (DIM>1)
    distr = merge(distributed, .true., present(distributed))
@@ -101,7 +93,7 @@ endif
 plan % planowner = .true.
 plan % distributed = distr
 
-if (.not. c_associated(plan % planptr)) stop "Error, FFT plan not created!"
+if (.not. c_associated(plan % planptr)) stop 'error, fft plan not created!'
 
 #undef COLONS
 #undef REALPLANTYPES

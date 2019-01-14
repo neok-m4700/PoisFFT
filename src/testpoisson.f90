@@ -30,8 +30,7 @@ contains
       real(rp), intent(in) :: phi(0:)
       real(rp), intent(out) :: r
       integer :: i
-      real(rp) :: x, p
-      real(rp) :: xx, f
+      real(rp) :: x, p, xx, f
       xx(i) = dx * i
       !       f(x) = (x**3 - x*(nx*dx)**2)/6
       f(x) = -lx**2 / (5 * pi)**2 * sin(5 * pi * x / lx)
@@ -69,11 +68,10 @@ contains
       real(rp), intent(in) :: phi(0:)
       real(rp), intent(out) :: r
       integer :: i
-      real(rp) :: x, p
-      real(rp) :: xx, f, g
-      !       xx(i) = dx/2 + dx*(i-1) - 0.5*lx
-      !       g(x) = (x**3/6 - x*(nx*dx)**2/8)
-      !       g(x) = (5._rp/16._rp)*lx**2*x+x**5/(5*lx**2)-x**3/2
+      real(rp) :: x, p, xx, f, g
+      ! xx(i) = dx/2 + dx*(i-1) - 0.5*lx
+      ! g(x) = (x**3/6 - x*(nx*dx)**2/8)
+      ! g(x) = (5._rp/16._rp)*lx**2*x+x**5/(5*lx**2)-x**3/2
       xx(i) = dx * (i - 1)
       g(x) = - (lx / (6 * pi))**2 * cos(6 * pi * (x / lx))
       f(x) = g(x) + (phi(1) - g(xx(1)))
@@ -82,7 +80,7 @@ contains
       do i = 1, nx
          x = xx(i)
          p = abs(phi(i) - f(x))
-         !         print *, x, f(x), phi(i)
+         ! print *, x, f(x), phi(i)
          r = r + p**2
       end do
       r = sqrt(r) / nx
@@ -92,11 +90,10 @@ contains
       real(rp), intent(in) :: phi(0:)
       real(rp), intent(out) :: r
       integer :: i
-      real(rp) :: x, p
-      real(rp) :: xx, f, g
-      !       xx(i) = dx/2 + dx*(i-1) - 0.5*lx
-      !       g(x) = (x**3/6 - x*(nx*dx)**2/8)
-      !       g(x) = (5._rp/16._rp)*lx**2*x+x**5/(5*lx**2)-x**3/2
+      real(rp) :: x, p, xx, f, g
+      ! xx(i) = dx/2 + dx*(i-1) - 0.5*lx
+      ! g(x) = (x**3/6 - x*(nx*dx)**2/8)
+      ! g(x) = (5._rp/16._rp)*lx**2*x+x**5/(5*lx**2)-x**3/2
       xx(i) = dx / 2 + dx * (i - 1)
       g(x) = - (lx / (6 * pi))**2 * cos(6 * pi * (x / lx))
       f(x) = g(x) + (phi(1) - g(xx(1)))
@@ -124,7 +121,7 @@ contains
       do i = 1, nx
          x = xx(i)
          p = abs(phi(i) - f(x))
-         !         print *, x, f(x), phi(i)
+         ! print *, x, f(x), phi(i)
          r = r + p**2
       end do
       r = sqrt(r) / nx
@@ -134,13 +131,11 @@ contains
       real(rp), intent(in) :: phi(0:, 0:, 0:)
       real(rp), intent(out) :: r
       integer :: i, j, k
-      real(rp) :: x, y, z, p
-      real(rp) :: xx, yy, zz, f
+      real(rp) :: x, y, z, p, xx, yy, zz, f
 
       xx(i) = dx * i
       yy(j) = dy * j
       zz(k) = dz * k
-
       f(x, y, z) = -1 / ((3 * pi)**2 / lx**2 + (5 * pi)**2 / ly**2 + (7 * pi)**2 / lz**2) * &
          sin(3 * pi * x / lx) * sin(5 * pi * y / ly) * sin(7 * pi * z / lz)
 
@@ -148,9 +143,7 @@ contains
       do k = 1, nz
          do j = 1, ny
             do i = 1, nx
-               x = xx(i)
-               y = yy(j)
-               z = zz(k)
+               x = xx(i); y = yy(j); z = zz(k)
                p = abs(phi(i, j, k) - f(x, y, z))
                r = r + p**2
             end do
@@ -163,13 +156,11 @@ contains
       real(rp), intent(in) :: phi(0:, 0:, 0:)
       real(rp), intent(out) :: r
       integer :: i, j, k
-      real(rp) :: x, y, z, p
-      real(rp) :: xx, yy, zz, f
+      real(rp) :: x, y, z, p, xx, yy, zz, f
 
       xx(i) = dx / 2 + dx * (i - 1)
       yy(j) = dy / 2 + dy * (j - 1)
       zz(k) = dz / 2 + dz * (k - 1)
-
       f(x, y, z) = -1 / ((3 * pi)**2 / lx**2 + (5 * pi)**2 / ly**2 + (7 * pi)**2 / lz**2) * &
          sin(3 * pi * x / lx) * sin(5 * pi * y / ly) * sin(7 * pi * z / lz)
 
@@ -177,9 +168,7 @@ contains
       do k = 1, nz
          do j = 1, ny
             do i = 1, nx
-               x = xx(i)
-               y = yy(j)
-               z = zz(k)
+               x = xx(i); y = yy(j); z = zz(k)
                p = abs(phi(i, j, k) - f(x, y, z))
                r = r + p**2
             end do
@@ -332,8 +321,7 @@ contains
    end subroutine
 
    subroutine res3d(phi, rhs, aw, ae, as, an, ab, at, btype, r)
-      !2nd order finite difference residuum
-
+      ! 2nd order finite difference residuum
       integer, parameter :: ea = 1, we = 2, so = 3, no = 4, bo = 5, to = 6
 
       real(rp), intent(inout) :: phi(0:, 0:, 0:)

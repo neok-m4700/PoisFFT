@@ -28,21 +28,15 @@ module endianness
 
 contains
    subroutine getendianness
-      character(4) :: bytes !may not work on some processors
-
+      character(4) :: bytes ! may not work on some processors
       bytes = transfer(1_int32, bytes)
-      if (ichar(bytes(4:4)) == 1) then
-         littleendian = .false.
-      else
-         littleendian = .true.
-      endif
+      littleendian = ichar(bytes(4:4)) /= 1
    end subroutine
 
    elemental function bigend16(x) result(res)
       integer(int16) :: res
       integer(int16), intent(in) :: x
       character(2) :: bytes
-
       if (.not. littleendian) then
          res = x
       else
@@ -55,7 +49,6 @@ contains
    function bigend32(x) result(res)
       real(real32), intent(in) :: x
       real(real32) :: res
-
       if (.not. littleendian) then
          res = x
       else
@@ -66,7 +59,6 @@ contains
    function bigend32_a1(x) result(res)
       real(real32), intent(in) :: x(:)
       real(real32) :: res(size(x, 1))
-
       if (.not. littleendian) then
          res = x
       else
@@ -77,7 +69,6 @@ contains
    function bigend32_a2(x) result(res)
       real(real32), intent(in) :: x(:, :)
       real(real32) :: res(size(x, 1), size(x, 2))
-
       if (.not. littleendian) then
          res = x
       else
@@ -88,7 +79,6 @@ contains
    function bigend32_a3(x) result(res)
       real(real32), intent(in) :: x(:, :, :)
       real(real32) :: res(size(x, 1), size(x, 2), size(x, 3))
-
       if (.not. littleendian) then
          res = x
       else
@@ -99,7 +89,6 @@ contains
    function bigend32_a4(x) result(res)
       real(real32), intent(in) :: x(:, :, :, :)
       real(real32) :: res(size(x, 1), size(x, 2), size(x, 3), size(x, 4))
-
       if (.not. littleendian) then
          res = x
       else
@@ -110,7 +99,6 @@ contains
    function bigend64(x) result(res)
       real(real64), intent(in) :: x
       real(real64) :: res
-
       if (.not. littleendian) then
          res = x
       else
@@ -121,7 +109,6 @@ contains
    function bigend64_a1(x) result(res)
       real(real64), intent(in) :: x(:)
       real(real64) :: res(size(x, 1))
-
       if (.not. littleendian) then
          res = x
       else
@@ -132,7 +119,6 @@ contains
    function bigend64_a2(x) result(res)
       real(real64), intent(in) :: x(:, :)
       real(real64) :: res(size(x, 1), size(x, 2))
-
       if (.not. littleendian) then
          res = x
       else
@@ -143,7 +129,6 @@ contains
    function bigend64_a3(x) result(res)
       real(real64), intent(in) :: x(:, :, :)
       real(real64) :: res(size(x, 1), size(x, 2), size(x, 3))
-
       if (.not. littleendian) then
          res = x
       else
@@ -154,7 +139,6 @@ contains
    function bigend64_a4(x) result(res)
       real(real64), intent(in) :: x(:, :, :, :)
       real(real64) :: res(size(x, 1), size(x, 2), size(x, 3), size(x, 4))
-
       if (.not. littleendian) then
          res = x
       else
@@ -174,12 +158,10 @@ contains
       equivalence(t, rt)
 
       rbytes = x
-
       t = ichar(bytes(4:4), int32)
       t = ior(ishftc(ichar(bytes(3:3), int32), 8), t)
       t = ior(ishftc(ichar(bytes(2:2), int32), 16), t)
       t = ior(ishftc(ichar(bytes(1:1), int32), 24), t)
-
       res = rt
    end function
 
@@ -203,7 +185,6 @@ contains
       t = ior(ishftc(ichar(bytes(1:1), int64), 56), t)
       res = rt
    end function
-
 end module
 
 module vtkarray
@@ -261,7 +242,6 @@ contains
 
       write(unit, "(A)") "SCALARS array float"
       write(unit, "(A)") "LOOKUP_TABLE default"
-
       write(unit, '(*(g0,/))') A(1:nx, 1:ny, 1:nz)
 
       write(unit, *)

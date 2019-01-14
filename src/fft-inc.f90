@@ -1,5 +1,5 @@
 #ifndef NO_CONTIGUOUS
-#define CONTIG , contiguous
+#define CONTIG ,contiguous
 #else
 #define CONTIG
 #endif
@@ -28,17 +28,9 @@ use pfft
 implicit none
 
 integer, parameter :: fft_complex = 0
-integer, parameter :: fft_realeven00 = fftw_redft00
-integer, parameter :: fft_realeven01 = fftw_redft01
-integer, parameter :: fft_realeven10 = fftw_redft10
-integer, parameter :: fft_realeven11 = fftw_redft11
-integer, parameter :: fft_realodd00 = fftw_rodft00
-integer, parameter :: fft_realodd01 = fftw_rodft01
-integer, parameter :: fft_realodd10 = fftw_rodft10
-integer, parameter :: fft_realodd11 = fftw_rodft11
-
-integer, parameter :: fft_distributed_fftw = 1
-integer, parameter :: fft_distributed_pfft = 2
+integer, parameter :: fft_realeven00 = fftw_redft00, fft_realeven01 = fftw_redft01, fft_realeven10 = fftw_redft10, fft_realeven11 = fftw_redft11
+integer, parameter :: fft_realodd00 = fftw_rodft00, fft_realodd01 = fftw_rodft01, fft_realodd10 = fftw_rodft10, fft_realodd11 = fftw_rodft11
+integer, parameter :: fft_distributed_fftw = 1, fft_distributed_pfft = 2
 
 type poisfft_plan1d
    type(c_ptr) :: planptr = c_null_ptr
@@ -100,16 +92,13 @@ type poisfft_solver1d
 end type
 
 type mpi_vars_2d
-   integer :: rank
-   integer :: np
-   integer :: comm = -1
-   integer :: comm_dim = 2
+   integer :: rank, np, comm = -1, comm_dim = 2
 end type
 
 type poisfft_solver2d
    real(RP) :: lx, ly
    integer(c_int) :: nx, ny, gnx, gny, nxyz(2)
-   integer(c_int) :: offx = 0, offy = 0 !offsets from global indexes
+   integer(c_int) :: offx = 0, offy = 0 ! offsets from global indexes
    integer(c_size_t) :: cnt, gcnt
    real(RP) :: norm_factor
    integer(c_int), dimension(4) :: bcs
@@ -130,7 +119,7 @@ end type
 type poisfft_solver3d
    real(RP) :: lx, ly, lz
    integer(c_int) :: nx, ny, nz, gnx, gny, gnz, nxyz(3)
-   integer(c_int) :: offx = 0, offy = 0, offz = 0 !offsets from global indexes
+   integer(c_int) :: offx = 0, offy = 0, offz = 0 ! offsets from global indexes
    integer(c_size_t) :: cnt, gcnt
    real(RP) :: norm_factor
    integer(c_int), dimension(6) :: bcs
@@ -141,7 +130,7 @@ type poisfft_solver3d
    complex(CP), dimension(:, :, :), pointer CONTIG :: cwork => null()
    real(RP), dimension(:, :, :), pointer CONTIG :: rwork => null()
    integer :: nthreads = 1
-   !will be used in splitting for some boundary conditions
+   ! will be used in splitting for some boundary conditions
    type(poisfft_solver1d), dimension(:), allocatable :: solvers1d
    type(poisfft_solver2d), dimension(:), allocatable :: solvers2d
    type(mpi_vars_3d) :: mpi
@@ -375,14 +364,14 @@ subroutine deallocate_fftw_3d_real(data)
 end subroutine
 
 subroutine poisfft_plan1d_finalize(plan)
-   type(PoisFFT_Plan1D) :: plan
+   type(poisfft_plan1d) :: plan
 
    if (c_associated(plan % planptr) .and. plan % planowner) call fftw_destroy_plan(plan % planptr)
    plan % planptr = c_null_ptr
 end subroutine
 
 subroutine poisfft_plan2d_finalize(plan)
-   type(PoisFFT_Plan2D) :: plan
+   type(poisfft_plan2d) :: plan
 
    if (c_associated(plan % planptr) .and. plan % planowner) then
 #ifdef MPI
@@ -399,7 +388,7 @@ subroutine poisfft_plan2d_finalize(plan)
 end subroutine
 
 subroutine poisfft_plan3d_finalize(plan)
-   type(PoisFFT_Plan3D) :: plan
+   type(poisfft_plan3d) :: plan
 
    if (c_associated(plan % planptr) .and. plan % planowner) then
 #ifdef MPI
@@ -415,7 +404,7 @@ subroutine poisfft_plan3d_finalize(plan)
    plan % planptr = c_null_ptr
 end subroutine
 
-subroutine poisfft_initthreads(nthreads) !instructs fftw to plan to use nthreads threads
+subroutine poisfft_initthreads(nthreads) ! instructs fftw to plan to use nthreads threads
    integer, intent(in) :: nthreads
 #if defined(_OPENMP) || defined(ENABLE_PTHREADS)
    integer(c_int) :: error
@@ -434,7 +423,7 @@ subroutine poisfft_pfft_init
    call pfft_init
 end subroutine
 
-subroutine poisfft_pfft_initthreads(nthreads) !instructs PFFT and fftw to plan to use nthreads threads
+subroutine poisfft_pfft_initthreads(nthreads) ! instructs PFFT and fftw to plan to use nthreads threads
    integer, intent(in) :: nthreads
 #if defined(_OPENMP) || defined(ENABLE_PTHREADS)
    call pfft_plan_with_nthreads(int(nthreads, c_int))

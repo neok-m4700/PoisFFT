@@ -6,8 +6,7 @@
 #define COLONS :,:,:
 #endif
 
-type(c_ptr), value :: self
-type(c_ptr), value :: phi, rhs
+type(c_ptr), value :: self, phi, rhs
 real(RPC), pointer :: f_phi(COLONS), f_rhs(COLONS)
 integer(c_int), optional :: ngphi(DIM), ngrhs(DIM)
 integer :: i
