@@ -2,7 +2,7 @@ subroutine poisfft_solver1d_fullperiodic(self, phi, rhs)
    type(poisfft_solver1d), intent(inout) :: self
    real(RP), intent(out) :: phi(:)
    real(RP), intent(in) :: rhs(:)
-   integer i
+   integer :: i
 #ifdef MPI
    interface
       subroutine mpi_gather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, root, comm, ierror)
@@ -40,26 +40,25 @@ subroutine poisfft_solver1d_fullperiodic(self, phi, rhs)
       call mpi_gather(self % offx, 1, MPI_INTEGER, displs, 1, MPI_INTEGER, 0, self % mpi % comm, ie)
       call mpi_gather(self % nx, 1, MPI_INTEGER, counts, 1, MPI_INTEGER, 0, self % mpi % comm, ie)
       call mpi_gatherv(rhs, self % nx, MPI_RP, tmp, counts, displs, MPI_RP, 0, self % mpi % comm, ie)
-      if (ie /= 0) stop "Error in MPI_Gatherv!"
+      if (ie /= 0) stop 'error in mpi_gatherv!'
 
-      if (self % mpi % rank == 0) self % cwork = cmplx(tmp, real(0., RP), CP)
+      if (self % mpi % rank == 0) self % cwork = cmplx(tmp, kind=CP)
 
       if (self % mpi % rank == 0) then
-         call execute(self % forward, self % cwork)
+         call execute(self % forward, self % cwork) ! forward fft of rhs
          if (self % offx == 0) self % cwork(1) = 0
          forall(i=2:self % gnx) self % cwork(i) = self % cwork(i) / self % denomx(i)
-         call execute(self % backward, self % cwork)
+         call execute(self % backward, self % cwork) ! backward fft of rhs
       end if
 
       tmp = real(self % cwork, RP) / self % norm_factor
       call mpi_scatterv(tmp, counts, displs, MPI_RP, phi, self % nx, MPI_RP, 0, self % mpi % comm, ie)
    end if
 #else
-   ! Forward FFT of RHS
-   self % cwork = cmplx(rhs, real(0., RP), CP)
-   call execute(self % forward, self % cwork)
+   self % cwork = cmplx(rhs, kind=CP)
+   call execute(self % forward, self % cwork) ! forward fft of rhs
    forall(i=2:self % nx) self % cwork(i) = self % cwork(i) / self % denomx(i)
-   call execute(self % backward, self % cwork)
+   call execute(self % backward, self % cwork) ! backward fft of rhs
    phi = real(self % cwork, RP) / self % norm_factor
 #endif
 end subroutine
@@ -70,11 +69,10 @@ subroutine poisfft_solver1d_fulldirichlet(self, phi, rhs)
    real(RP), intent(in) :: rhs(:)
    integer :: i
 
-   ! forward fft of rhs
    self % rwork = rhs
-   call execute(self % forward, self % rwork)
+   call execute(self % forward, self % rwork) ! forward fft of rhs
    forall(i=1:self % nx) self % rwork(i) = self % rwork(i) / self % denomx(i)
-   call execute(self % backward, self % rwork)
+   call execute(self % backward, self % rwork) ! backward fft of rhs
    phi = self % rwork / self % norm_factor
 end subroutine
 
@@ -84,12 +82,11 @@ subroutine poisfft_solver1d_fullneumann(self, phi, rhs)
    real(RP), intent(in) :: rhs(:)
    integer :: i
 
-   ! forward fft of rhs
    self % rwork = rhs
-   call execute(self % forward, self % rwork)
+   call execute(self % forward, self % rwork) ! forward fft of rhs
    self % rwork(1) = 0
    forall(i=2:self % nx) self % rwork(i) = self % rwork(i) / self % denomx(i)
-   call execute(self % backward, self % rwork)
+   call execute(self % backward, self % rwork) ! backward fft of rhs
    phi = self % rwork / self % norm_factor
 end subroutine
 
@@ -99,22 +96,18 @@ subroutine poisfft_solver2d_fullperiodic(self, phi, rhs)
    real(RP), intent(in) :: rhs(:, :)
    integer :: i, j
 
-   ! Forward FFT of RHS
-   self % cwork = cmplx(RHS, real(0., RP), CP)
-
+   self % cwork = cmplx(rhs, kind=CP)
 #ifdef MPI
    call execute_mpi(self % forward)
 #else
    call execute(self % forward, self % cwork)
 #endif
-
    if (self % offx == 0 .and. self % offy == 0) self % cwork(1, 1) = 0
    do j = 1, self % ny
       do i = max(3 - j - self % offx - self % offy, 1), self % nx
          self % cwork(i, j) = self % cwork(i, j) / (self % denomx(i) + self % denomy(j))
       end do
    end do
-
 #ifdef MPI
    call execute_mpi(self % backward)
 #else
@@ -129,16 +122,22 @@ subroutine poisfft_solver2d_fulldirichlet(self, phi, rhs)
    real(RP), intent(in) :: rhs(:, :)
    integer :: i, j
 
-   ! forward fft of rhs
    self % rwork = rhs
+#ifdef MPI
+   call execute_mpi(self % forward)
+#else
    call execute(self % forward, self % rwork)
+#endif
    do j = 1, self % ny
       do i = 1, self % nx
          self % rwork(i, j) = self % rwork(i, j) / (self % denomx(i) + self % denomy(j))
       end do
    end do
-
+#ifdef MPI
+   call execute_mpi(self % backward)
+#else
    call execute(self % backward, self % rwork)
+#endif
    phi = self % rwork / self % norm_factor
 end subroutine
 
@@ -148,16 +147,23 @@ subroutine poisfft_solver2d_fullneumann(self, phi, rhs)
    real(RP), intent(in) :: rhs(:, :)
    integer :: i, j
 
-   ! forward fft of rhs
    self % rwork = rhs
+#ifdef MPI
+   call execute_mpi(self % forward)
+#else
    call execute(self % forward, self % rwork)
+#endif
    self % rwork(1, 1) = 0
    do j = 1, self % ny
       do i = max(3 - j, 1), self % nx
          self % rwork(i, j) = self % rwork(i, j) / (self % denomx(i) + self % denomy(j))
       end do
    end do
+#ifdef MPI
+   call execute_mpi(self % backward)
+#else
    call execute(self % backward, self % rwork)
+#endif
    phi = self % rwork / self % norm_factor
 end subroutine
 
@@ -169,7 +175,7 @@ subroutine poisfft_solver3d_fullperiodic(self, phi, rhs)
 
    !$omp parallel private(i,j,k)
    !$omp workshare
-   self % cwork = cmplx(RHS, real(0., RP), CP)
+   self % cwork = cmplx(rhs, kind=CP)
    !$omp end workshare
    !$omp end parallel
 #ifdef MPI
@@ -179,12 +185,11 @@ subroutine poisfft_solver3d_fullperiodic(self, phi, rhs)
 #endif
    !$omp parallel private(i,j,k)
    if (self % offx == 0 .and. self % offy == 0 .and. self % offz == 0) then
-#define xwork cwork
+#define XWORK cwork
 #include "loop_nest_3d.f90"
-#undef xwork
-      !NOTE: if IEEE FPE exceptions are disabled all this is not necessary and
+#undef XWORK
+      ! NOTE: if IEEE FPE exceptions are disabled all this is not necessary and
       ! the loop can be over all indexes because the infinity or NaN is changed to 0 below
-
       !$omp single
       self % cwork(1, 1, 1) = 0
       !$omp end single
@@ -216,7 +221,7 @@ subroutine poisfft_solver3d_fulldirichlet(self, phi, rhs)
 
    !$omp parallel private(i,j,k)
    !$omp workshare
-   self % rwork = RHS
+   self % rwork = rhs
    !$omp end workshare
    !$omp end parallel
 #ifdef MPI
@@ -226,13 +231,9 @@ subroutine poisfft_solver3d_fulldirichlet(self, phi, rhs)
 #endif
    !$omp parallel private(i,j,k)
    !$omp do
-   do k = 1, self % nz
-      do j = 1, self % ny
-         do i = 1, self % nx
-            self % rwork(i, j, k) = self % rwork(i, j, k) / (self % denomx(i) + self % denomy(j) + self % denomz(k))
-         end do
-      end do
-   end do
+   do k = 1, self % nz; do j = 1, self % ny; do i = 1, self % nx
+      self % rwork(i, j, k) = self % rwork(i, j, k) / (self % denomx(i) + self % denomy(j) + self % denomz(k))
+   end do; end do; end do
    !$omp end do
    !$omp end parallel
 #ifdef MPI
@@ -254,11 +255,9 @@ subroutine poisfft_solver3d_fullneumann(self, phi, rhs)
    integer :: i, j, k
 
    !$omp parallel private(i,j,k)
-
    !$omp workshare
-   self % rwork = RHS
+   self % rwork = rhs
    !$omp end workshare
-
    !$omp end parallel
 #ifdef MPI
    call execute_mpi(self % forward)
@@ -271,24 +270,19 @@ subroutine poisfft_solver3d_fullneumann(self, phi, rhs)
    !$omp end single
 
    if (self % offx == 0 .and. self % offy == 0 .and. self % offz == 0) then
-#define xwork rwork
+#define XWORK rwork
 #include "loop_nest_3d.f90"
-#undef xwork
-      !NOTE: if IEEE FPE exceptions are disabled all this is not necessary and
+#undef XWORK
+      ! NOTE: if IEEE FPE exceptions are disabled all this is not necessary and
       ! the loop can be over all indexes because the infinity or NaN is changed to 0 below
-
       !$omp single
       self % rwork(1, 1, 1) = 0
       !$omp end single
    else
       !$omp do
-      do k = 1, self % nz
-         do j = 1, self % ny
-            do i = 1, self % nx
-               self % rwork(i, j, k) = self % rwork(i, j, k) / (self % denomx(i) + self % denomy(j) + self % denomz(k))
-            end do
-         end do
-      end do
+      do k = 1, self % nz; do j = 1, self % ny; do i = 1, self % nx
+         self % rwork(i, j, k) = self % rwork(i, j, k) / (self % denomx(i) + self % denomy(j) + self % denomz(k))
+      end do; end do; end do
       !$omp end do
    end if
    !$omp end parallel
@@ -305,6 +299,7 @@ subroutine poisfft_solver3d_fullneumann(self, phi, rhs)
 end subroutine
 
 #ifdef MPI
+!> periodic - periodic - neumann(stag)
 subroutine poisfft_solver3d_ppns(self, phi, rhs)
    type(poisfft_solver3d), intent(inout) :: self
    real(RP), intent(out) :: phi(:, :, :)
@@ -314,7 +309,7 @@ subroutine poisfft_solver3d_ppns(self, phi, rhs)
    if (self % solvers1d(3) % mpi_transpose_needed) then
       call transform_1d_real_z(self % solvers1d(3:), phi, rhs, forward=.true., use_rhs=.true.)
    else
-      !$omp parallel private(tid,i,j,k)
+      !$omp parallel private(tid, i, j, k)
       tid = 0
       !$ tid = omp_get_thread_num()
       !$omp do collapse(2)
@@ -331,11 +326,10 @@ subroutine poisfft_solver3d_ppns(self, phi, rhs)
    if (self % ny < self % gny) then
       do k = 1, self % nz
          !$omp parallel workshare
-         self % solvers2d(1) % cwork(1:self % nx, 1:self % ny) = cmplx(phi(1:self % nx, 1:self % ny, k), real(0., RP), CP)
+         self % solvers2d(1) % cwork(1:self % nx, 1:self % ny) = cmplx(phi(1:self % nx, 1:self % ny, k), kind=CP)
          !$omp end parallel workshare
 
          call execute_mpi(self % solvers2d(1) % forward, self % solvers2d(1) % cwork)
-
          if (k == 1 .and. self % offz == 0) then
             !$omp parallel do
             do j = 1, self % ny
@@ -344,14 +338,15 @@ subroutine poisfft_solver3d_ppns(self, phi, rhs)
                end do
             end do
             !$omp end parallel do
-            !NOTE: if IEEE FPE exceptions are disabled all this is not necessary and
+            ! NOTE: if IEEE FPE exceptions are disabled all this is not necessary and
             ! the loop can be over all indexes because the infinity or NaN is changed to 0 below
             if (self % offx == 0 .and. self % offy == 0) self % solvers2d(1) % cwork(1, 1) = 0
          else
             !$omp parallel do collapse(2)
             do j = 1, self % ny
                do i = 1, self % nx
-                  self % solvers2d(1) % cwork(i, j) = self % solvers2d(1) % cwork(i, j) / (self % denomx(i) + self % denomy(j) + self % denomz(k))
+                  self % solvers2d(1) % cwork(i, j) = &
+                     self % solvers2d(1) % cwork(i, j) / (self % denomx(i) + self % denomy(j) + self % denomz(k))
                end do
             end do
             !$omp end parallel do
@@ -362,14 +357,13 @@ subroutine poisfft_solver3d_ppns(self, phi, rhs)
          !$omp end parallel workshare
       end do
    else
-
-      !$omp parallel private(tid,i,j,k)
+      !$omp parallel private(tid, i, j, k)
       tid = 1
       !$ tid = omp_get_thread_num()+1
 
       !$omp do
       do k = 1, self % nz
-         self % solvers2d(tid) % cwork(1:self % nx, 1:self % ny) = cmplx(phi(1:self % nx, 1:self % ny, k), real(0., RP), CP)
+         self % solvers2d(tid) % cwork(1:self % nx, 1:self % ny) = cmplx(phi(1:self % nx, 1:self % ny, k), kind=CP)
          call execute(self % solvers2d(tid) % forward, self % solvers2d(tid) % cwork)
 
          if (k == 1 .and. self % offz == 0) then
@@ -384,13 +378,14 @@ subroutine poisfft_solver3d_ppns(self, phi, rhs)
             do j = 2, self % ny
                self % solvers2d(tid) % cwork(1, j) = self % solvers2d(tid) % cwork(1, j) / self % denomy(j)
             end do
-            !NOTE: if IEEE FPE exceptions are disabled all this is not necessary and
+            ! NOTE: if IEEE FPE exceptions are disabled all this is not necessary and
             ! the loop can be over all indexes because the infinity or NaN is changed to 0 below
             self % solvers2d(tid) % cwork(1, 1) = 0
          else
             do j = 1, self % ny
                do i = 1, self % nx
-                  self % solvers2d(tid) % cwork(i, j) = self % solvers2d(tid) % cwork(i, j) / (self % denomx(i) + self % denomy(j) + self % denomz(k))
+                  self % solvers2d(tid) % cwork(i, j) = &
+                     self % solvers2d(tid) % cwork(i, j) / (self % denomx(i) + self % denomy(j) + self % denomz(k))
                end do
             end do
          endif
@@ -403,7 +398,7 @@ subroutine poisfft_solver3d_ppns(self, phi, rhs)
    if (self % solvers1d(3) % mpi_transpose_needed) then
       call transform_1d_real_z(self % solvers1d(3:), phi, rhs, forward=.false., use_rhs=.false.)
    else
-      !$omp parallel private(tid,i,j,k)
+      !$omp parallel private(tid, i, j, k)
       tid = 0
       !$ tid = omp_get_thread_num()
       !$omp do collapse(2)
@@ -426,7 +421,7 @@ subroutine poisfft_solver3d_ppns(self, phi, rhs)
    real(RP), intent(in) :: rhs(:, :, :)
    integer :: i, j, k, tid !thread id
 
-   !$omp parallel private(tid,i,j,k)
+   !$omp parallel private(tid, i, j, k)
    tid = 1
    !$ tid = omp_get_thread_num()+1
 
@@ -443,7 +438,7 @@ subroutine poisfft_solver3d_ppns(self, phi, rhs)
 
    !$omp do
    do k = 1, self % nz
-      self % solvers2d(tid) % cwork(1:self % nx, 1:self % ny) = cmplx(phi(1:self % nx, 1:self % ny, k), real(0., RP), CP)
+      self % solvers2d(tid) % cwork(1:self % nx, 1:self % ny) = cmplx(phi(1:self % nx, 1:self % ny, k), kind=CP)
 
       call execute(self % solvers2d(tid) % forward, self % solvers2d(tid) % cwork)
       if (k == 1) then
@@ -458,13 +453,14 @@ subroutine poisfft_solver3d_ppns(self, phi, rhs)
          do j = 2, self % ny
             self % solvers2d(tid) % cwork(1, j) = self % solvers2d(tid) % cwork(1, j) / self % denomy(j)
          end do
-         !NOTE: if IEEE FPE exceptions are disabled all this is not necessary and
+         ! NOTE: if IEEE FPE exceptions are disabled all this is not necessary and
          ! the loop can be over all indexes because the infinity or NaN is changed to 0 below
          self % solvers2d(tid) % cwork(1, 1) = 0
       else
          do j = 1, self % ny
             do i = 1, self % nx
-               self % solvers2d(tid) % cwork(i, j) = self % solvers2d(tid) % cwork(i, j) / (self % denomx(i) + self % denomy(j) + self % denomz(k))
+               self % solvers2d(tid) % cwork(i, j) = &
+                  self % solvers2d(tid) % cwork(i, j) / (self % denomx(i) + self % denomy(j) + self % denomz(k))
             end do
          end do
       endif
@@ -493,7 +489,7 @@ subroutine poisfft_solver3d_pnsp(self, phi, rhs)
    real(RP), intent(in) :: rhs(:, :, :)
    integer :: i, j, k, tid !thread id
 
-   !$omp parallel private(tid,i,j,k)
+   !$omp parallel private(tid, i, j, k)
    tid = 1
    !$ tid = omp_get_thread_num()+1
 
@@ -510,7 +506,7 @@ subroutine poisfft_solver3d_pnsp(self, phi, rhs)
 
    !$omp do
    do j = 1, self % ny
-      self % solvers2d(tid) % cwork(1:self % nx, 1:self % nz) = cmplx(phi(1:self % nx, 1:self % nz, k), real(0., RP), CP)
+      self % solvers2d(tid) % cwork(1:self % nx, 1:self % nz) = cmplx(phi(1:self % nx, 1:self % nz, k), kind=CP)
       call execute(self % solvers2d(tid) % forward, self % solvers2d(tid) % cwork)
       if (j == 1) then
          do k = 2, self % nz
@@ -524,13 +520,14 @@ subroutine poisfft_solver3d_pnsp(self, phi, rhs)
          do k = 2, self % nz
             self % solvers2d(tid) % cwork(1, k) = self % solvers2d(tid) % cwork(1, k) / self % denomz(k)
          end do
-         !NOTE: if IEEE FPE exceptions are disabled all this is not necessary and
+         ! NOTE: if IEEE FPE exceptions are disabled all this is not necessary and
          ! the loop can be over all indexes because the infinity or NaN is changed to 0 below
          self % solvers2d(tid) % cwork(1, 1) = 0
       else
          do k = 1, self % nz
             do i = 1, self % nx
-               self % solvers2d(tid) % cwork(i, k) = self % solvers2d(tid) % cwork(i, k) / (self % denomx(i) + self % denomy(j) + self % denomz(k))
+               self % solvers2d(tid) % cwork(i, k) = &
+                  self % solvers2d(tid) % cwork(i, k) / (self % denomx(i) + self % denomy(j) + self % denomz(k))
             end do
          end do
       endif
@@ -552,6 +549,7 @@ subroutine poisfft_solver3d_pnsp(self, phi, rhs)
 end subroutine
 
 #ifdef MPI
+!> periodic - neumann(stag) - neumann(stag)
 subroutine poisfft_solver3d_pnsns(self, phi, rhs)
    type(poisfft_solver3d), intent(inout), target :: self
    real(RP), intent(out) :: phi(:, :, :)
@@ -561,7 +559,7 @@ subroutine poisfft_solver3d_pnsns(self, phi, rhs)
    if (self % solvers1d(3) % mpi_transpose_needed) then
       call transform_1d_real_z(self % solvers1d(3 :: 3), phi, rhs, forward=.true., use_rhs=.true.)
    else
-      !$omp parallel private(tid,i,j,k)
+      !$omp parallel private(tid, i, j, k)
       tid = 0
       !$ tid = omp_get_thread_num()
       !$omp do
@@ -578,7 +576,7 @@ subroutine poisfft_solver3d_pnsns(self, phi, rhs)
    if (self % solvers1d(2) % mpi_transpose_needed) then
       call transform_1d_real_y(self % solvers1d(2 :: 3), phi, rhs, forward=.true., use_rhs=.false.)
    else
-      !$omp parallel private(tid,i,j,k)
+      !$omp parallel private(tid, i, j, k)
       tid = 0
       !$ tid = omp_get_thread_num()
       !$omp do
@@ -592,19 +590,20 @@ subroutine poisfft_solver3d_pnsns(self, phi, rhs)
       !$omp end parallel
    end if
 
-   !$omp parallel private(tid,i,j,k)
+   !$omp parallel private(tid, i, j, k)
    tid = 0
    !$ tid = omp_get_thread_num()
    !$omp do
    do k = 1, self % nz
       do j = 1, self % ny
-         self % solvers1d(1 + 3 * tid) % cwork = cmplx(phi(:, j, k), real(0., RP), CP)
+         self % solvers1d(1 + 3 * tid) % cwork = cmplx(phi(:, j, k), kind=CP)
          call execute(self % solvers1d(1 + 3 * tid) % forward, self % solvers1d(1 + 3 * tid) % cwork)
 
          do i = max(4 - j - k - self % offy - self % offz, 1), self % nx
-            self % solvers1d(1 + 3 * tid) % cwork(i) = self % solvers1d(1 + 3 * tid) % cwork(i) / (self % denomx(i) + self % denomy(j) + self % denomz(k))
+            self % solvers1d(1 + 3 * tid) % cwork(i) = &
+               self % solvers1d(1 + 3 * tid) % cwork(i) / (self % denomx(i) + self % denomy(j) + self % denomz(k))
          end do
-         !note: if ieee fpe exceptions are disabled all this is not necessary and
+         ! NOTE: if Ieee fpe exceptions are disabled all this is not necessary and
          ! the loop can be over all indexes because the infinity or nan is changed to 0 below
          if (self % offy == 0 .and. self % offz == 0 .and. j == 1 .and. k == 1) self % solvers1d(1 + 3 * tid) % cwork(1) = 0
 
@@ -614,18 +613,18 @@ subroutine poisfft_solver3d_pnsns(self, phi, rhs)
    end do
    !$omp end parallel
 
-   if (self % Solvers1D(2) % mpi_transpose_needed) then
-      call transform_1d_real_y(self % Solvers1D(2 :: 3), Phi, RHS, forward=.false., use_rhs=.false.)
+   if (self % solvers1d(2) % mpi_transpose_needed) then
+      call transform_1d_real_y(self % solvers1d(2 :: 3), Phi, RHS, forward=.false., use_rhs=.false.)
    else
-      !$omp parallel private(tid,i,j,k)
+      !$omp parallel private(tid, i, j, k)
       tid = 0
       !$ tid = omp_get_thread_num()
       !$omp do
       do k = 1, self % nz
          do i = 1, self % nx
-            self % Solvers1D(2 + 3 * tid) % rwork = Phi(i, :, k)
-            call Execute(self % Solvers1D(2 + 3 * tid) % backward, self % Solvers1D(2 + 3 * tid) % rwork)
-            Phi(i, :, k) = self % Solvers1D(2 + 3 * tid) % rwork
+            self % solvers1d(2 + 3 * tid) % rwork = phi(i, :, k)
+            call execute(self % solvers1d(2 + 3 * tid) % backward, self % solvers1d(2 + 3 * tid) % rwork)
+            phi(i, :, k) = self % solvers1d(2 + 3 * tid) % rwork
          end do
       end do
       !$omp end parallel
@@ -634,7 +633,7 @@ subroutine poisfft_solver3d_pnsns(self, phi, rhs)
    if (self % solvers1d(3) % mpi_transpose_needed) then
       call transform_1d_real_z(self % solvers1d(3 :: 3), phi, rhs, forward=.false., use_rhs=.false.)
    else
-      !$omp parallel private(tid,i,j,k)
+      !$omp parallel private(tid, i, j, k)
       tid = 0
       !$ tid = omp_get_thread_num()
       !$omp do
@@ -648,16 +647,16 @@ subroutine poisfft_solver3d_pnsns(self, phi, rhs)
       !$omp end parallel
    end if
 end subroutine
- !mpi
+
 #else
- !threads
+ ! THREADS
 subroutine poisfft_solver3d_pnsns(self, phi, rhs)
    type(poisfft_solver3d), intent(inout) :: self
    real(RP), intent(out) :: phi(:, :, :)
    real(RP), intent(in) :: rhs(:, :, :)
    integer :: i, j, k, tid !thread id
 
-   !$omp parallel private(tid,i,j,k)
+   !$omp parallel private(tid, i, j, k)
    tid = 1
    !$ tid = omp_get_thread_num()+1
 
@@ -673,12 +672,12 @@ subroutine poisfft_solver3d_pnsns(self, phi, rhs)
    !$omp do
    do k = 1, self % nz
       do j = 1, self % ny
-         self % solvers1d(tid) % cwork = cmplx(phi(:, j, k), real(0., RP), CP)
+         self % solvers1d(tid) % cwork = cmplx(phi(:, j, k), kind=CP)
          call execute(self % solvers1d(tid) % forward, self % solvers1d(tid) % cwork)
          do i = max(4 - j - k - self % offy - self % offz, 1), self % nx
             self % solvers1d(tid) % cwork(i) = self % solvers1d(tid) % cwork(i) / (self % denomx(i) + self % denomy(j) + self % denomz(k))
          end do
-         !note: if ieee fpe exceptions are disabled all this is not necessary and
+         ! NOTE: if Ieee fpe exceptions are disabled all this is not necessary and
          ! the loop can be over all indexes because the infinity or nan is changed to 0 below
          if (self % offy == 0 .and. self % offz == 0 .and. j == 1 .and. k == 1) self % solvers1d(tid) % cwork(1) = 0
          call execute(self % solvers1d(tid) % backward, self % solvers1d(tid) % cwork)
@@ -695,7 +694,6 @@ subroutine poisfft_solver3d_pnsns(self, phi, rhs)
    end do
    !$omp end do
    !$omp end parallel
-
 end subroutine
 
 #endif
@@ -723,11 +721,11 @@ subroutine transform_1d_real_y(D1D, Phi, RHS, forward, use_rhs)
 
 #define m D1D(1)%mpi
 
-   !$omp parallel private(i,j,k,tid)
+   !$omp parallel private(tid, i, j, k)
    tid = 1
    !$ tid = omp_get_thread_num()+1
 
-   !step1 local transpose
+   ! step1 local transpose
    if (use_rhs) then
       !$omp do
       do k = 1, nz; do i = 1, nx; do j = 1, ny
@@ -740,12 +738,12 @@ subroutine transform_1d_real_y(D1D, Phi, RHS, forward, use_rhs)
       end do; end do; end do
    end if
 
-   !step2 exchange
+   ! step2 exchange
    !$omp single
    call mpi_alltoallv(m % tmp1, m % scounts, m % sdispls, MPI_RP, m % tmp2, m % rcounts, m % rdispls, MPI_RP, m % comm, ie)
    !$omp end single
 
-   !step3 local reordering of blocks
+   ! step3 local reordering of blocks
    !$omp do collapse(3)
    do l = 1, m % np
       do k = 0, m % rnxs(1) - 1
@@ -776,7 +774,7 @@ subroutine transform_1d_real_y(D1D, Phi, RHS, forward, use_rhs)
       end do
    end if
 
-   !step3' local reordering of blocks
+   ! step3' local reordering of blocks
    !$omp do collapse(3)
    do l = 1, m % np
       do k = 0, m % rnxs(1) - 1
@@ -789,7 +787,7 @@ subroutine transform_1d_real_y(D1D, Phi, RHS, forward, use_rhs)
       end do
    end do
 
-   !step2' exchange
+   ! step2' exchange
    !$omp single
    call mpi_alltoallv(m % tmp2, m % rcounts, m % rdispls, MPI_RP, m % tmp1, m % scounts, m % sdispls, MPI_RP, m % comm, ie)
    !$omp end single
@@ -825,11 +823,11 @@ subroutine transform_1d_real_z(d1d, phi, rhs, forward, use_rhs)
 
 #define m d1d(1) % mpi
 
-   !$omp parallel private(i,j,k,tid)
+   !$omp parallel private(tid, i, j, k)
    tid = 1
    !$ tid = omp_get_thread_num()+1
 
-   !step1 local transpose
+   ! step1 local transpose
    if (use_rhs) then
       !$omp do
       do j = 1, ny; do i = 1, nx; do k = 1, nz
@@ -840,22 +838,20 @@ subroutine transform_1d_real_z(d1d, phi, rhs, forward, use_rhs)
       do j = 1, ny; do i = 1, nx; do k = 1, nz
          m % tmp1(k, j, i) = phi(i, j, k)
       end do; end do; end do
-
    end if
 
-   !step2 exchange
+   ! step2 exchange
    !$omp single
    call mpi_alltoallv(m % tmp1, m % scounts, m % sdispls, MPI_RP, m % tmp2, m % rcounts, m % rdispls, MPI_RP, m % comm, ie)
    !$omp end single
 
-   !step3 local reordering of blocks
+   ! step3 local reordering of blocks
    !$omp do collapse(3)
    do l = 1, m % np
       do k = 0, m % rnxs(1) - 1
          do j = 0, ny - 1
             do i = 0, m % rnzs(l) - 1
-               m % rwork(i + m % sumrnzs(l) + 1, j + 1, k + 1) = &
-                  m % tmp2(i + j * m % rnzs(l) + k * (ny * m % rnzs(l)) + m % rdispls(l))
+               m % rwork(i + m % sumrnzs(l) + 1, j + 1, k + 1) = m % tmp2(i + j * m % rnzs(l) + k * (ny * m % rnzs(l)) + m % rdispls(l))
             end do
          end do
       end do
@@ -878,7 +874,7 @@ subroutine transform_1d_real_z(d1d, phi, rhs, forward, use_rhs)
       end do
    end if
 
-   !step3' local reordering of blocks
+   ! step3' local reordering of blocks
    !$omp do collapse(3)
    do l = 1, m % np
       do k = 0, m % rnxs(1) - 1
@@ -890,7 +886,7 @@ subroutine transform_1d_real_z(d1d, phi, rhs, forward, use_rhs)
       end do
    end do
 
-   !step2' exchange
+   ! step2' exchange
    !$omp single
    call mpi_alltoallv(m % tmp2, m % rcounts, m % rdispls, MPI_RP, m % tmp1, m % scounts, m % sdispls, MPI_RP, m % comm, ie)
    !$omp end single

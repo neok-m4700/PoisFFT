@@ -110,9 +110,7 @@ function poisfft_solver3d__new(nxyz, lxyz, bcs, approximation, gnxyz, offs, mpi_
    end if
 
    self % nthreads = merge(nthreads, 1, present(nthreads))
-
-   ! create fftw plans and allocate working arrays
-   call init(self)
+   call init(self) ! create fftw plans and allocate working array
 end function
 
 subroutine poisfft_solver3d_init(self)
@@ -589,10 +587,8 @@ function poisfft_solver2d__new(nxyz, lxyz, bcs, approximation, gnxyz, offs, mpi_
    integer, intent(in), optional :: approximation, gnxyz(2), offs(2), mpi_comm, nthreads
 
    self % nxyz = nxyz
-
    self % lx = lxyz(1)
    self % ly = lxyz(2)
-
    self % nx = nxyz(1)
    self % ny = nxyz(2)
 
@@ -624,18 +620,14 @@ function poisfft_solver2d__new(nxyz, lxyz, bcs, approximation, gnxyz, offs, mpi_
    end if
 
    self % nthreads = merge(nthreads, 1, present(nthreads))
-
-   ! create fftw plans and allocate working array
-   call init(self)
+   call init(self) ! create fftw plans and allocate working array
 end function
 
 subroutine poisfft_solver2d_init(self)
    type(poisfft_solver2d), intent(inout) :: self
    integer :: i
 
-   self % norm_factor = norm_factor(self % gnx, self % bcs(1:2)) * &
-      norm_factor(self % gny, self % bcs(3:4))
-
+   self % norm_factor = norm_factor(self % gnx, self % bcs(1:2)) * norm_factor(self % gny, self % bcs(3:4))
    allocate(self % denomx(self % nx), self % denomy(self % ny))
 
    if (all(self % bcs == poisfft_periodic)) then
@@ -676,41 +668,29 @@ subroutine poisfft_solver2d__execute(self, phi, rhs)
    type(poisfft_solver2d), intent(inout) :: self
    real(RP), intent(out) :: phi(:, :)
    real(RP), intent(in) :: rhs(:, :)
-
    integer :: ngphi(2), ngrhs(2)
 
    ngphi = (ubound(phi) - [self % nx, self % ny]) / 2
    ngrhs = (ubound(rhs) - [self % nx, self % ny]) / 2
-
    if (all(self % bcs == poisfft_periodic)) then
       call poisfft_solver2d_fullperiodic(self, &
-         phi(ngphi(1) + 1:ngphi(1) + self % nx, &
-         ngphi(2) + 1:ngphi(2) + self % ny), &
-         rhs(ngrhs(1) + 1:ngrhs(1) + self % nx, &
-         ngrhs(2) + 1:ngrhs(2) + self % ny))
-   else if (all(self % bcs == poisfft_dirichlet) .or. &
-      all(self % bcs == poisfft_dirichletstag)) then
+         phi(ngphi(1) + 1:ngphi(1) + self % nx, ngphi(2) + 1:ngphi(2) + self % ny), &
+         rhs(ngrhs(1) + 1:ngrhs(1) + self % nx, ngrhs(2) + 1:ngrhs(2) + self % ny))
+   else if (all(self % bcs == poisfft_dirichlet) .or. all(self % bcs == poisfft_dirichletstag)) then
       call poisfft_solver2d_fulldirichlet(self, &
-         phi(ngphi(1) + 1:ngphi(1) + self % nx, &
-         ngphi(2) + 1:ngphi(2) + self % ny), &
-         rhs(ngrhs(1) + 1:ngrhs(1) + self % nx, &
-         ngrhs(2) + 1:ngrhs(2) + self % ny))
-   else if (all(self % bcs == poisfft_neumann) .or. &
-      all(self % bcs == poisfft_neumannstag)) then
+         phi(ngphi(1) + 1:ngphi(1) + self % nx, ngphi(2) + 1:ngphi(2) + self % ny), &
+         rhs(ngrhs(1) + 1:ngrhs(1) + self % nx, ngrhs(2) + 1:ngrhs(2) + self % ny))
+   else if (all(self % bcs == poisfft_neumann) .or. all(self % bcs == poisfft_neumannstag)) then
       call poisfft_solver2d_fullneumann(self, &
-         phi(ngphi(1) + 1:ngphi(1) + self % nx, &
-         ngphi(2) + 1:ngphi(2) + self % ny), &
-         rhs(ngrhs(1) + 1:ngrhs(1) + self % nx, &
-         ngrhs(2) + 1:ngrhs(2) + self % ny))
+         phi(ngphi(1) + 1:ngphi(1) + self % nx, ngphi(2) + 1:ngphi(2) + self % ny), &
+         rhs(ngrhs(1) + 1:ngrhs(1) + self % nx, ngrhs(2) + 1:ngrhs(2) + self % ny))
    endif
 end subroutine
 
 subroutine poisfft_solver2d__finalize(self)
    type(poisfft_solver2d), intent(inout) :: self
-
    call finalize(self % forward)
    call finalize(self % backward)
-
    if (associated(self % rwork)) call deallocate_fftw(self % rwork)
    if (associated(self % cwork)) call deallocate_fftw(self % cwork)
 end subroutine
@@ -736,7 +716,6 @@ function poisfft_solver1d__new(nxyz, lxyz, bcs, approximation, gnxyz, offs, mpi_
    end if
 
    if (present(offs)) self % offx = offs(1)
-
    self % cnt = self % nx
    self % gcnt = int(self % gnx, kind(self % gcnt))
    self % bcs = bcs
@@ -755,9 +734,7 @@ function poisfft_solver1d__new(nxyz, lxyz, bcs, approximation, gnxyz, offs, mpi_
    end if
 
    self % nthreads = merge(nthreads, 1, present(nthreads))
-
-   ! create fftw plans and allocate working array
-   call init(self)
+   call init(self) ! create fftw plans and allocate working array
 end function
 
 subroutine poisfft_solver1d_init(self)
@@ -831,32 +808,30 @@ end subroutine
 
 #include "poisfft-solvers-inc.f90"
 
-function eigenvalues(f, bcs, l, n, gn, off) result(res)
-   procedure(eig_fn_spectral) :: f
+function eigenvalues(func, bcs, l, n, gn, off) result(res)
+   procedure(eig_fn_spectral) :: func
    integer, intent(in) :: bcs(2)
    real(RP), intent(in) :: l
    integer, intent(in) :: n, gn, off
-   real(RP) :: res(n)
+   real(RP) :: res(n), dkx, dkx_h
    integer :: i
-   real(RP) :: dkx, dkx_h
 
    dkx = pi * grid_dx(gn, l, bcs) / l
    dkx_h = dkx / 2
 
    if (all(bcs == poisfft_periodic)) then
       do i = 1, n
-         res(i) = f(merge(i - 1 + off, gn - (i - 1 + off), i + off < gn / 2) * dkx)
+         res(i) = func(merge(i - 1 + off, gn - (i - 1 + off), i + off < gn / 2) * dkx)
       end do
    else if (all(bcs == poisfft_dirichlet)) then
-      forall(i=1:n) res(i) = f((i + off) * dkx_h)
+      forall(i=1:n) res(i) = func((i + off) * dkx_h)
    else if (all(bcs == poisfft_dirichletstag)) then
-      forall(i=1:n) res(i) = f((i + off) * dkx_h)
+      forall(i=1:n) res(i) = func((i + off) * dkx_h)
    else if (all(bcs == poisfft_neumann)) then
-      forall(i=1:n) res(i) = f((i - 1 + off) * dkx_h)
+      forall(i=1:n) res(i) = func((i - 1 + off) * dkx_h)
    else if (all(bcs == poisfft_neumannstag)) then
-      forall(i=1:n) res(i) = f((i - 1 + off) * dkx_h)
+      forall(i=1:n) res(i) = func((i - 1 + off) * dkx_h)
    end if
-
    res = res / (grid_dx(gn, l, bcs))**2
 end function
 
@@ -866,12 +841,12 @@ pure real(RP) function eig_fn_spectral(x) result(f)
    f = - (2 * x)**2
 end function
 
-pure real(RP) function eig_fn_FD2(x) result(f)
+pure real(RP) function eig_fn_fd2(x) result(f)
    real(RP), intent(in) :: x
    f = - (2 * sin(x))**2
 end function
 
-pure real(RP) function eig_fn_FD4(x) result(f)
+pure real(RP) function eig_fn_fd4(x) result(f)
    real(RP), intent(in) :: x
    f = - ((sin(3 * x) - 27 * sin(x)) / 12)**2
 end function
@@ -988,7 +963,7 @@ subroutine init_mpi_buffers(self, dir)
       allocate(mpi % tmp2(0:sum(mpi % rcounts) - 1))
       allocate(mpi % rwork(sum(mpi % rnzs), self % ny, mpi % rnxs(1)))
    else
-      stop 'Not implemented.'
+      stop 'not implemented.'
    end if
 end subroutine
 

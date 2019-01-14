@@ -375,7 +375,7 @@ subroutine poisfft_plan2d_finalize(plan)
 
    if (c_associated(plan % planptr) .and. plan % planowner) then
 #ifdef MPI
-      if (plan % distributed .and. plan % method == FFT_DISTRIBUTED_PFFT) then
+      if (plan % distributed .and. plan % method == fft_distributed_pfft) then
          call pfft_destroy_plan(plan % planptr)
       else
          call fftw_destroy_plan(plan % planptr)
