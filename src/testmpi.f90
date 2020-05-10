@@ -634,7 +634,8 @@ program testpoisson_mpi
       end do
    end do
 
-   call mpi_allreduce(sum(rhs), s, 1, mpi_rp, mpi_sum, glob_comm, ie)
+   s = sum(rhs)
+   call mpi_allreduce(mpi_in_place, s, 1, mpi_rp, mpi_sum, glob_comm, ie)
    rhs = rhs - s / product(ng)
 
    call mpi_barrier(glob_comm, ie)
@@ -694,7 +695,8 @@ contains
       integer :: n
 
       call mpi_cart_sub(cart_comm, [.false., .true.], sub_comm, ie)
-      call mpi_allreduce(sum(rhs(:, :, 1)), s, 1, mpi_rp, mpi_sum, sub_comm, ie)
+      s = sum(rhs(:, :, 1))
+      call mpi_allreduce(mpi_in_place, s, 1, mpi_rp, mpi_sum, sub_comm, ie)
       rhs(:, :, 1) = rhs(:, :, 1) - s / product(ng(1:2))
 
       call exchange_boundaries_2d(glob_comm, phi(:, :, 1), nx, ny, bcs)
@@ -723,7 +725,8 @@ contains
       integer :: sub_comm = -1, ie
 
       call mpi_cart_sub(cart_comm, [.false., .true.], sub_comm, ie)
-      call mpi_allreduce(sum(rhs(1, :, 1)), s, 1, mpi_rp, mpi_sum, sub_comm, ie)
+      s = sum(rhs(1, :, 1))
+      call mpi_allreduce(mpi_in_place, s, 1, mpi_rp, mpi_sum, sub_comm, ie)
       rhs(1, :, 1) = rhs(1, :, 1) - s / ng(2)
 
       ! call exchange_boundaries_1d(glob_comm, phi(:,:,1), nx, bcs)
