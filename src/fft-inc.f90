@@ -23,149 +23,216 @@ use iso_c_binding
 use poisfft_constants
 use fftw3
 #ifdef MPI
-use pfft
+  use pfft
 #endif
-implicit none
-
-integer, parameter :: fft_complex = 0
-integer, parameter :: fft_realeven00 = fftw_redft00, fft_realeven01 = fftw_redft01, fft_realeven10 = fftw_redft10, fft_realeven11 = fftw_redft11
-integer, parameter :: fft_realodd00 = fftw_rodft00, fft_realodd01 = fftw_rodft01, fft_realodd10 = fftw_rodft10, fft_realodd11 = fftw_rodft11
-integer, parameter :: fft_distributed_fftw = 1, fft_distributed_pfft = 2
-
-type poisfft_plan1d
-   type(c_ptr) :: planptr = c_null_ptr
-   logical :: planowner = .false., distributed = .false.
-   integer(c_int) :: dir
-end type
+  implicit none
 
 
-type poisfft_plan2d
-   type(c_ptr) :: planptr = c_null_ptr
-   logical :: planowner = .false., distributed = .false.
-   integer :: method = fft_distributed_pfft
-   integer(c_int) :: dir
-end type
+
+  integer, parameter :: FFT_Complex = 0
+  integer, parameter :: FFT_RealEven00  = FFTW_REDFT00
+  integer, parameter :: FFT_RealEven01  = FFTW_REDFT01
+  integer, parameter :: FFT_RealEven10  = FFTW_REDFT10
+  integer, parameter :: FFT_RealEven11  = FFTW_REDFT11
+  integer, parameter :: FFT_RealOdd00   = FFTW_RODFT00
+  integer, parameter :: FFT_RealOdd01   = FFTW_RODFT01
+  integer, parameter :: FFT_RealOdd10   = FFTW_RODFT10
+  integer, parameter :: FFT_RealOdd11   = FFTW_RODFT11
+
+  integer, parameter :: FFT_DISTRIBUTED_FFTW = 1
+  integer, parameter :: FFT_DISTRIBUTED_PFFT = 2
+
+  type PoisFFT_Plan1D
+    type(c_ptr)         :: planptr = c_null_ptr
+    logical             :: planowner = .false.
+    logical             :: distributed = .false.
+    integer(c_int)      :: dir
+  end type PoisFFT_Plan1D
 
 
-type poisfft_plan3d
-   type(c_ptr) :: planptr = c_null_ptr
-   logical :: planowner = .false., distributed = .false.
-   integer(c_int) :: dir
-end type
+  type PoisFFT_Plan2D
+    type(c_ptr)         :: planptr = c_null_ptr
+    logical             :: planowner = .false.
+    logical             :: distributed = .false.
+    integer             :: method = FFT_DISTRIBUTED_PFFT
+    integer(c_int)      :: dir
+  end type PoisFFT_Plan2D
 
-type mpi_vars_1d
-   integer :: comm = -1 ! MPI communicator for the exchange
-   integer :: rank ! our rank in comm
-   integer :: np ! number of processes in comm
-   ! s for DIM of send buffers, r for receive buffers
-   ! nx, nz are the DIM of individual parts which will be sent to or received from other processes in comm
-   ! displs are the displacements (offsets) of individual pieces in the whole 1D buffer
-   ! counts are the the number of elements in each piece
-   ! sumrnzs(i) is the sum of rnzs in pieces 1..i-1
-   integer, dimension(:), allocatable :: snxs, snzs, rnxs, rnzs, sdispls, scounts, rdispls, rcounts, sumrnzs
-   !contiguous 3D buffer for locally transposed RHS
-   real(RP), allocatable :: tmp1(:, :, :)
-   !1D buffer for globally transposed blocks of tmp1 from different processes after MPI_Alltoallv
-   real(RP), allocatable :: tmp2(:)
-   !3D buffer for contiguous 1D rows on which 1D FFT can be performed locally,
-   ! constructed by local reordering of tmp2
-   real(RP), allocatable :: rwork(:, :, :)
-end type
 
-type poisfft_solver1d
-   real(RP) :: lx
-   integer(c_int) :: nx, gnx, nxyz(1)
-   integer(c_int) :: offx = 0 !offset from global index
-   integer(c_size_t) :: cnt, gcnt
-   real(RP) :: norm_factor
-   integer(c_int), dimension(2) :: bcs
-   real(RP), allocatable, dimension(:) :: denomx
-   integer :: approximation = 0
+  type PoisFFT_Plan3D
+    type(c_ptr)         :: planptr = c_null_ptr
+    logical             :: planowner = .false.
+    logical             :: distributed = .false.
+    integer(c_int)      :: dir
+  end type PoisFFT_Plan3D
 
-   type(poisfft_plan1d) :: forward, backward
-   complex(CP), dimension(:), pointer CONTIG :: cwork => null()
-   real(RP), dimension(:), pointer CONTIG :: rwork => null()
 
-   logical :: mpi_transpose_needed = .false.
-   integer :: nthreads = 1
-   type(mpi_vars_1D) :: mpi
-end type
+  type mpi_vars_1d
+    !MPI communicator for the exchange
+    integer :: comm = -1
+    !our rank in comm
+    integer :: rank
+    !number of processes in comm
+    integer :: np
+    ! s for dimensions of send buffers, r for receive buffers
+    ! nx, nz are the dimensions of individual parts which will be sent to or received from other processes in comm
+    ! displs are the displacements (offsets) of individual pieces in the whole 1D buffer
+    ! counts are the the number of elements in each piece
+    ! sumrnzs(i) is the sum of rnzs in pieces 1..i-1
+    integer,dimension(:),allocatable :: snxs, snzs, &
+                                        rnxs, rnzs, &
+                                        sdispls, scounts, &
+                                        rdispls, rcounts, &
+                                        sumrnzs
+    !contiguous 3D buffer for locally transposed RHS
+    real(RP), allocatable :: tmp1(:,:,:)
+    !1D buffer for globally transposed blocks of tmp1 from different processes after MPI_Alltoallv
+    real(RP), allocatable :: tmp2(:)
+    !3D buffer for contiguous 1D rows on which 1D FFT can be performed locally,
+    ! constructed by local reordering of tmp2
+    real(RP), allocatable :: rwork(:,:,:)
+    ! global indexes corresponding to the given y or z line in the rwork array.
+    integer, allocatable :: glob_i(:,:) ! value of global i, (:,:) local indexes of rwork
+    
+  end type
 
-type mpi_vars_2d
-   integer :: rank, np, comm = -1, comm_dim = 2
-end type
+  type PoisFFT_Solver1D
+    real(RP) :: Lx
+    integer(c_int) :: nxyz(1)
+    integer(c_int) :: nx
+    integer(c_int) :: gnx
+    integer(c_int) :: offx = 0 !offset from global index
+    integer(c_size_t) :: cnt
+    integer(c_size_t) :: gcnt
+    real(RP) :: norm_factor
+    integer(c_int), dimension(2) :: BCs
+    real(RP), allocatable, dimension(:) :: denomx
+    integer :: approximation = 0
+    
+    type(PoisFFT_Plan1D) :: forward, backward
+    complex(CP), dimension(:), &
+#ifndef NO_CONTIGUOUS
+    contiguous, &
+#endif
+                       pointer :: cwork => null()
+    real(RP), dimension(:), &
+#ifndef NO_CONTIGUOUS
+    contiguous, &
+#endif
+                       pointer :: rwork => null()
+    logical :: mpi_transpose_needed = .false.
+    integer :: nthreads = 1
+    type(mpi_vars_1D) :: mpi
+  end type PoisFFT_Solver1D
 
-type poisfft_solver2d
-   real(RP) :: lx, ly
-   integer(c_int) :: nx, ny, gnx, gny, nxyz(2)
-   integer(c_int) :: offx = 0, offy = 0 ! offsets from global indexes
-   integer(c_size_t) :: cnt, gcnt
-   real(RP) :: norm_factor
-   integer(c_int), dimension(4) :: bcs
-   real(RP), allocatable, dimension(:) :: denomx, denomy
-   integer :: approximation = 0
+  type mpi_vars_2d
+    integer :: rank
+    integer :: np
+    integer :: comm = -1
+    integer :: comm_dim = 2
+  end type
 
-   type(poisfft_plan2d) :: forward, backward
-   complex(CP), dimension(:, :), pointer CONTIG :: cwork => null()
-   real(RP), dimension(:, :), pointer CONTIG :: rwork => null()
-   integer :: nthreads = 1
-   type(mpi_vars_2d) :: mpi
-end type
+  type PoisFFT_Solver2D
+    real(RP) :: Lx, Ly
+    integer(c_int) :: nxyz(2)
+    integer(c_int) :: nx, ny
+    integer(c_int) :: gnx, gny
+    integer(c_int) :: offx = 0, offy = 0 !offsets from global indexes
+    integer(c_size_t) :: cnt
+    integer(c_size_t) :: gcnt
+    real(RP) :: norm_factor
+    integer(c_int), dimension(4) :: BCs
+    real(RP), allocatable, dimension(:) :: denomx, denomy
+    integer :: approximation = 0
+    
+    type(PoisFFT_Plan2D) :: forward, backward
+    complex(CP), dimension(:,:), &
+#ifndef NO_CONTIGUOUS
+    contiguous, &
+#endif
+                       pointer :: cwork => null()
+    real(RP), dimension(:,:), &
+#ifndef NO_CONTIGUOUS
+    contiguous, &
+#endif
+                       pointer :: rwork => null()
+    integer :: nthreads = 1
+    type(mpi_vars_2D) :: mpi
+  end type PoisFFT_Solver2D
+  
+  type mpi_vars_3D
+    integer :: comm = -1
+  end type
 
-type mpi_vars_3d
-   integer :: comm = -1
-end type
+  type PoisFFT_Solver3D
+    real(RP) :: Lx, Ly, Lz
+    integer(c_int) :: nxyz(3)
+    integer(c_int) :: nx, ny, nz
+    integer(c_int) :: gnx, gny, gnz
+    integer(c_int) :: offx = 0, offy = 0, offz = 0 !offsets from global indexes
+    integer(c_size_t) :: cnt
+    integer(c_size_t) :: gcnt
+    real(RP) :: norm_factor
+    integer(c_int), dimension(6) :: BCs
+    real(RP), allocatable, dimension(:) :: denomx, denomy, denomz
+    integer :: approximation = 0
+    
+    type(PoisFFT_Plan3D) :: forward, backward
+    complex(CP), dimension(:,:,:), &
+#ifndef NO_CONTIGUOUS
+    contiguous, &
+#endif
+                       pointer :: cwork => null()
+    real(RP), dimension(:,:,:), &
+#ifndef NO_CONTIGUOUS
+    contiguous, &
+#endif
+                       pointer :: rwork => null()
+    integer :: nthreads = 1
+    !will be used in splitting for some boundary conditions
+    type(PoisFFT_Solver1D),dimension(:),allocatable :: Solvers1D
+    type(PoisFFT_Solver2D),dimension(:),allocatable :: Solvers2D
+    type(mpi_vars_3D) :: mpi
+  end type PoisFFT_Solver3D
+ 
+  type, extends(PoisFFT_Solver3D) :: PoisFFT_Solver3D_nonuniform_Z
+    real(RP) :: z_start, z_end
+    real(RP), allocatable :: z(:), z_u(:)
+    real(RP), allocatable :: mat_a(:), mat_b(:), mat_c(:) !tridiagonal matrix elements, variable in z
+  end type
+ 
+ 
 
-type poisfft_solver3d
-   real(RP) :: lx, ly, lz
-   integer(c_int) :: nx, ny, nz, gnx, gny, gnz, nxyz(3)
-   integer(c_int) :: offx = 0, offy = 0, offz = 0 ! offsets from global indexes
-   integer(c_size_t) :: cnt, gcnt
-   real(RP) :: norm_factor
-   integer(c_int), dimension(6) :: bcs
-   real(RP), allocatable, dimension(:) :: denomx, denomy, denomz
-   integer :: approximation = 0
+  interface deallocate_fftw
+    module procedure deallocate_fftw_1D_complex
+    module procedure deallocate_fftw_1D_real
+    module procedure deallocate_fftw_2D_complex
+    module procedure deallocate_fftw_2D_real
+    module procedure deallocate_fftw_3D_complex
+    module procedure deallocate_fftw_3D_real
+  end interface
 
-   type(poisfft_plan3d) :: forward, backward
-   complex(CP), dimension(:, :, :), pointer CONTIG :: cwork => null()
-   real(RP), dimension(:, :, :), pointer CONTIG :: rwork => null()
-   integer :: nthreads = 1
-   ! will be used in splitting for some boundary conditions
-   type(poisfft_solver1d), dimension(:), allocatable :: solvers1d
-   type(poisfft_solver2d), dimension(:), allocatable :: solvers2d
-   type(mpi_vars_3d) :: mpi
-end type
+  interface allocate_fftw_real
+    module procedure allocate_fftw_1D_real
+    module procedure allocate_fftw_2D_real
+    module procedure allocate_fftw_3D_real
+  end interface
 
-interface deallocate_fftw
-   module procedure deallocate_fftw_1d_complex
-   module procedure deallocate_fftw_1d_real
-   module procedure deallocate_fftw_2d_complex
-   module procedure deallocate_fftw_2d_real
-   module procedure deallocate_fftw_3d_complex
-   module procedure deallocate_fftw_3d_real
-end interface
+  interface allocate_fftw_complex
+    module procedure allocate_fftw_1D_complex
+    module procedure allocate_fftw_2D_complex
+    module procedure allocate_fftw_3D_complex
+  end interface
 
-interface allocate_fftw_real
-   module procedure allocate_fftw_1d_real
-   module procedure allocate_fftw_2d_real
-   module procedure allocate_fftw_3d_real
-end interface
-
-interface allocate_fftw_complex
-   module procedure allocate_fftw_1d_complex
-   module procedure allocate_fftw_2d_complex
-   module procedure allocate_fftw_3d_complex
-end interface
-
-interface execute
-   module procedure poisfft_plan1d_execute_real
-   module procedure poisfft_plan1d_execute_complex
-   module procedure poisfft_plan2d_execute_real
-   module procedure poisfft_plan2d_execute_complex
-   module procedure poisfft_plan3d_execute_real
-   module procedure poisfft_plan3d_execute_complex
-end interface
-
+  interface Execute
+    module procedure PoisFFT_Plan1D_Execute_Real
+    module procedure PoisFFT_Plan1D_Execute_Complex
+    module procedure PoisFFT_Plan2D_Execute_Real
+    module procedure PoisFFT_Plan2D_Execute_Complex
+    module procedure PoisFFT_Plan3D_Execute_Real
+    module procedure PoisFFT_Plan3D_Execute_Complex
+  end interface
+  
 #ifdef MPI
 
 interface execute_mpi
@@ -434,7 +501,7 @@ end subroutine
 
 #undef RP
 #undef CP
-#undef FFTW_EXECUTE_COMPLEX
-#undef FFTW_EXECUTE_REAL
-#undef PFFT_EXECUTE_GEN
-#undef FFTW_MPI_EXECUTE_COMPLEX
+#undef fftw_execute_complex
+#undef fftw_execute_real
+#undef pfft_execute_gen
+#undef fftw_mpi_execute_complex

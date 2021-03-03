@@ -61,22 +61,134 @@ module parameters
 end module
 
 module my_mpi
-   use parameters
-   use mpi
+  use parameters
+  use mpi
+  
+  integer :: nims, npxyz(3), pxyz(3)
+  integer :: nxims, nyims, nzims
+  integer :: myim, myrank, iim, jim, kim
+  integer :: w_im, e_im, s_im, n_im, b_im, t_im
+  integer :: w_rank, e_rank, s_rank, n_rank, b_rank, t_rank
+  integer :: glob_comm, cart_comm, cart_comm_dim = -1
+  logical :: master = .false.
+  integer :: MPI_RP = -huge(1)
+  
+  interface error_stop
+    module procedure error_stop_int
+    module procedure error_stop_char
+    module procedure error_stop_char_int
+  end interface
+  
+ contains
 
-   integer :: nimg, npxyz(3), pxyz(3)
-   integer :: nxims, nyims, nzims
-   integer :: myim, myrank, iim, jim, kim
-   integer :: w_im, e_im, s_im, n_im, b_im, t_im
-   integer :: w_rk, e_rk, s_rk, n_rk, b_rk, t_rk
-   integer :: glob_comm, cart_comm, cart_comm_dim = -1
-   logical :: rt = .true.
-   integer :: mpi_rp = -huge(1)
+  integer function this_image() result(res)
+    integer ie
+    call MPI_Comm_rank(glob_comm, res, ie)
+    res = res + 1
+    if (ie/=0) call error_stop("MPI_Comm_rank ERROR")
+  end function
 
-   interface error_stop
-      module procedure error_stop_int
-      module procedure error_stop_char
-   end interface
+  integer function num_images() result(res)
+    integer ie
+    call MPI_Comm_size(glob_comm, res, ie)
+    if (ie/=0) call error_stop("MPI_Comm_size ERROR")
+  end function
+
+  integer function image_index(sub) result(res)
+    integer, intent(in) :: sub(3)
+    integer ie
+    
+    if (cart_comm_dim==-1) then
+      call MPI_Cartdim_get(cart_comm, cart_comm_dim, ie)
+      if (ie/=0) call error_stop("MPI_Cartdim_get")
+    end if
+    call MPI_Cart_rank(cart_comm, sub(3:4-cart_comm_dim:-1)-1, res, ie)  
+    if (ie/=0) call error_stop("MPI_Cart_rank")
+    res = res + 1
+  end function
+  
+  subroutine get_image_coords()
+    call MPI_Cart_coords(cart_comm, myrank, 3, pxyz, ie)
+    if (ie/=0) call error_stop("MPI_Cart_coords")
+        
+     pxyz = pxyz(3:1:-1)
+     
+     iim = pxyz(1) + 1
+     jim = pxyz(2) + 1
+     kim = pxyz(3) + 1
+     
+     if (iim>1) then
+       w_im = image_index([iim-1, jim, kim])
+     else
+       w_im = image_index([nxims, jim, kim])
+     end if
+     if (iim<nxims) then
+       e_im = image_index([iim+1, jim, kim])
+     else
+       e_im = image_index([1, jim, kim])
+     end if
+     
+     if (jim>1) then
+       s_im = image_index([iim, jim-1, kim])
+     else
+       s_im = image_index([iim, nyims, kim])
+     end if
+     if (jim<nyims) then
+       n_im = image_index([iim, jim+1, kim])
+     else
+       n_im = image_index([iim, 1, kim])
+     end if
+
+     if (kim>1) then
+       b_im = image_index([iim, jim, kim-1])
+     else
+       b_im = image_index([iim, jim, nzims])
+     end if
+     if (kim<nzims) then
+       t_im = image_index([iim, jim, kim+1])
+     else
+       t_im = image_index([iim, jim, 1])
+     end if
+     
+     w_rank = w_im - 1
+     e_rank = e_im - 1
+     s_rank = s_im - 1
+     n_rank = n_im - 1
+     b_rank = b_im - 1
+     t_rank = t_im - 1
+  end subroutine
+  
+    
+  subroutine error_stop_int(n)
+    integer,intent(in) :: n
+    integer ie
+    if (master) then
+      write(*,*) "ERROR",n
+    end if
+    call MPI_finalize(ie)
+    stop
+  end subroutine
+
+  subroutine error_stop_char(ch)
+    character(*),intent(in) :: ch
+    integer ie
+    if (master) then
+      write(*,*) "ERROR: ",ch
+    end if
+    call MPI_finalize(ie)
+    stop
+  end subroutine
+
+  subroutine error_stop_char_int(ch, n)
+    character(*),intent(in) :: ch
+    integer,intent(in) :: n
+    integer ie
+    if (master) then
+      write(*,*) "ERROR: ",ch," code:",n
+    end if
+    call MPI_finalize(ie)
+    stop
+  end subroutine
 
 contains
    integer function caf_this_image() result(res)
@@ -559,80 +671,201 @@ program testpoisson_mpi
 
    nimg = caf_num_images()
 
-   if (command_argument_count() >= 1) then
-      call get_command_argument(1, value=ch50)
-      read(ch50, *, iostat=ie) npxyz
-      if (ie /= 0) then
-         write(ferr, *) 'the process grid should be provided as "npx, npy, npz" where nxp,npy and npz are integers.'
-         error stop 111
-      end if
-   else
-      npxyz(1) = 1
-      npxyz(2) = nint(sqrt(real(nimg)))
-      npxyz(3) = nimg / npxyz(2)
-      if (rt) write(*, *) 'trying to decompose in', npxyz, 'process grid.'
-   end if
 
-   if (command_argument_count() >= 2) then
-      call get_command_argument(2, value=ch50)
-      read(ch50, *) ng
-   end if
 
-   nxims = npxyz(1)
-   nyims = npxyz(2)
-   nzims = npxyz(3)
 
-   if (product(npxyz) /= nimg) then
-      if (rt) then
-         write(ferr, *) 'could not decompose the processes to n x n grid.'
-         write(ferr, *) 'try a perfect square for number of processes.'
-      end if
-      call error_stop(25)
-   end if
 
-   call poisfft_initmpigrid(glob_comm, npxyz(3:2:-1), cart_comm, ie)
-   if (ie /= 0) call error_stop(30)
 
-   call get_image_coords
 
-   call poisfft_localgridsize(3, ng, cart_comm, nxyz, off, nxyz2, nsxyz2)
-   if (any(nxyz /= nxyz2) .or. any(off /= nsxyz2)) call error_stop(40)
 
-   if (any(nxyz == 0)) then
-      write(ferr, *) 'process', pxyz, 'has grid dimensions', nxyz, '.'
-      write(ferr, *) 'try different process grid distribution.'
-      call error_stop(45)
-   end if
 
-   nx = nxyz(1)
-   ny = nxyz(2)
-   nz = nxyz(3)
 
-   ls = [2 * pi, 2 * pi, 2 * pi]
-   dx = ls(1) / ng(1)
-   dy = ls(2) / ng(2)
-   dz = ls(3) / ng(3)
 
-   allocate(rhs(nx, ny, nz), stat=ie)
-   if (ie /= 0) call error_stop(50)
 
-   allocate(phi(0:nx + 1, 0:ny + 1, 0:nz + 1))
-   if (ie /= 0) call error_stop(60)
 
-   call random_seed(put=[(0, i=1, 100)])
-   do k = 1, nz
-      do j = 1, ny
-         do i = 1, nx
-            call random_number(rhs(i, j, k))
-            call random_number(phi(i, j, k))
-            ! x = (i + off(1) - 1._rp / 2) * dx
-            ! y = (j + off(2) - 1._rp / 2) * dy
-            ! z = (k + off(3) - 1._rp / 2) * dz
-            ! rhs(i,j,k) = x * sin(y) / (abs(z)+0.1)
-            ! phi(i,j,k) = x * sin(y) / (abs(z)+0.1)
-         end do
-      end do
+program testpoisson_MPI
+  use iso_fortran_env
+  use iso_c_binding
+  use PoisFFT, PoisFFT_Solver1D => PoisFFT_Solver1D_DP, &
+               PoisFFT_Solver2D => PoisFFT_Solver2D_DP, &
+               PoisFFT_Solver3D => PoisFFT_Solver3D_DP
+  use my_mpi
+  use subs
+  
+  implicit none
+
+  integer(c_intptr_t) :: ng(3) = [131, 123, 127]![21,32,25]!
+  real(RP), dimension(:,:,:), allocatable :: Phi, RHS
+  real(RP) :: dx,dy,dz, Ls(3)
+  integer i,j,k
+  real(RP) :: R,x,y,z
+  integer(int64) :: t1,t2,trate
+  type(PoisFFT_Solver3D) :: Solver3D
+  type(PoisFFT_Solver2D) :: Solver2D
+  type(PoisFFT_Solver1D) :: Solver1D
+  character(len=50) :: ch50
+  integer :: nx, ny, nz
+  integer(c_intptr_t),dimension(3) :: nxyz,off,nxyz2,nsxyz2
+  real(DRP) ::  S
+  integer :: seed_size
+  integer :: ie = 0
+  character(200) :: fname
+
+  integer :: required, provided
+
+  required = MPI_THREAD_SERIALIZED
+
+!$ if (.false.) then
+    call MPI_Init_thread(required, provided, ie)
+    provided = required
+!$ else
+!$  call MPI_Init_thread(required, provided, ie)
+!$ end if
+
+  if (ie/=0) call error_stop("Error initializing MPI.")
+
+  glob_comm = MPI_COMM_WORLD
+
+  myim = this_image()
+  myrank = myim - 1
+
+  if (myrank==0) master = .true.
+
+  if (provided<required) then
+    if (master) write(*,*) "------------------------------"
+    if (master) write(*,*) "Error, the provided MPI threading support smaller than required!"
+    if (master) write(*,*) "required:", required
+    if (master) write(*,*) "provided:", provided
+    if (master) write(*,*) "Trying to continue anyway, but a crash is likely and the results will be questionable."
+    if (master) write(*,*) "------------------------------"
+  end if
+  
+  if (RP == kind(1.)) then
+    MPI_RP = MPI_REAL
+  else if (RP == kind(1.D0)) then
+    MPI_RP = MPI_DOUBLE_PRECISION
+  end if
+  
+  call system_clock(count_rate=trate)
+ 
+  nims = num_images()
+
+  if (command_argument_count()>=1) then
+    call get_command_argument(1,value=ch50)
+    read(ch50,*,iostat=ie) npxyz
+    if (ie/=0) then
+      write(*,*) "The process grid should be provided as 'npx,npy,npz' where nxp,npy and npz are integers."
+      stop
+    end if
+  else
+    npxyz(1) = 1
+    npxyz(2) = nint(sqrt(real(nims)))
+    npxyz(3) = nims / npxyz(2)
+    if (master)    write (*,*) "Trying to decompose in",npxyz,"process grid."
+  end if
+
+  if (command_argument_count()>=2) then
+    call get_command_argument(2,value=ch50)
+    read(ch50,*) ng
+  end if
+
+  nxims = npxyz(1)
+  nyims = npxyz(2)
+  nzims = npxyz(3)
+  
+  if (product(npxyz)/=nims) then
+    if (master) then
+      write(*,*) "Could not decompose the processes to N x N grid."
+      write(*,*) "Try a perfect square for number of processes."
+    end if
+    call error_stop(25)
+  end if
+
+  call PoisFFT_InitMPIGrid(glob_comm, npxyz(3:2:-1), cart_comm, ie)
+  if (ie/=0) call error_stop(30)
+  
+  call get_image_coords
+
+  call PoisFFT_LocalGridSize(3,ng,cart_comm,nxyz,off,nxyz2,nsxyz2)
+  if (any(nxyz/=nxyz2).or.any(off/=nsxyz2)) call error_stop(40)
+
+  if (any(nxyz==0)) then
+    write(*,*) "Process",pxyz,"has grid dimensions",nxyz,"."
+    write(*,*) "Try different process grid distribution."
+    call error_stop(45)
+  end if
+  
+  nx = nxyz(1)
+  ny = nxyz(2)
+  nz = nxyz(3)
+ 
+  Ls = [2*pi, 2*pi, 2*pi]
+  dx = Ls(1)/ng(1)
+  dy = Ls(2)/ng(2)
+  dz = Ls(3)/ng(3)
+  
+  allocate(RHS(nx,ny,nz),stat=ie)
+  if (ie/=0) call error_stop(50)
+
+  allocate(Phi(0:nx+1,0:ny+1,0:nz+1))
+  if (ie/=0) call error_stop(60)
+
+
+  call random_seed(size=seed_size)
+  call random_seed(put=[(myim+i,i=1,seed_size)])
+
+  do k=1,nz
+   do j=1,ny
+    do i=1,nx
+     x=(i+off(1)-1._RP/2)*dx
+     y=(j+off(2)-1._RP/2)*dy
+     z=(k+off(3)-1._RP/2)*dz
+     call random_number(RHS(i,j,k))
+     call random_number(Phi(i,j,k))
+!      RHS(i,j,k) = x * sin(y) / (abs(z)+0.1)
+!      PHI(i,j,k) = x * sin(y) / (abs(z)+0.1)
+    end do
    end do
+  end do
+  
+  call MPI_AllReduce(sum(RHS), S, 1, MPI_RP, MPI_SUM, glob_comm, ie)
+ 
+  RHS = RHS - S / product(ng)
+
+  
+  call MPI_Barrier(glob_comm,ie)
+  
+  if (master) write(*,*) "2D Periodic"
+
+  call compute2D([(PoisFFT_Periodic, i=1,4)])
+  
+
+  call MPI_Barrier(glob_comm,ie)
+  
+  if (master) write(*,*) "1D Periodic"
+
+  call compute1D([(PoisFFT_Periodic, i=1,2)])
+
+  
+  
+  
+  call MPI_AllReduce(sum(RHS), S, 1, MPI_RP, MPI_SUM, glob_comm, ie)
+ 
+  RHS = RHS - S / product(ng)
+  
+
+  call MPI_Barrier(glob_comm,ie)
+  
+  if (master) write(*,*) "3D PNsNs"
+
+  call compute3d([(PoisFFT_Periodic, i=1,2),(PoisFFT_NeumannStag, i=3,6)])
+
+
+  call MPI_Barrier(glob_comm,ie)
+  
+  if (master) write(*,*) "3D PPNs"
+
+  call compute3d([(PoisFFT_Periodic, i=1,4),(PoisFFT_NeumannStag, i=5,6)])
 
    s = sum(rhs)
    call mpi_allreduce(mpi_in_place, s, 1, mpi_rp, mpi_sum, glob_comm, ie)
@@ -663,6 +896,36 @@ program testpoisson_mpi
    call save_vtk
    call mpi_finalize(ie)
 
+  call MPI_Barrier(glob_comm,ie)
+  
+  if (master) write(*,*) "3D staggered Dirichlet"
+
+  call compute3D([(PoisFFT_DirichletStag, i=1,6)])
+
+
+  call MPI_Barrier(glob_comm,ie)
+  
+  if (master) write(*,*) "3D staggered Neumann:"
+
+  call compute3D([(PoisFFT_NeumannStag, i=1,6)])
+
+
+  call MPI_Barrier(glob_comm,ie)
+  
+  if (master) write(*,*) "3D Periodic"
+
+  call compute3D([(PoisFFT_Periodic, i=1,6)])
+ 
+ 
+
+
+  call MPI_Barrier(glob_comm,ie)
+
+  call save_vtk  
+  
+  call MPI_finalize(ie)
+  
+  
 contains
    subroutine compute3d(bcs)
       integer, intent(in) :: bcs(6)
@@ -820,4 +1083,154 @@ contains
 
    end subroutine
 
-end program
+    if (master) write(*,*) "--------"
+  end subroutine
+
+  
+  subroutine compute1D(BCs)
+    integer, intent(in) :: BCs(2)
+    integer :: sub_comm = -1, ie
+    
+    call MPI_Cart_sub(cart_comm, [.false., .true.], sub_comm, ie)
+
+    call MPI_AllReduce(sum(RHS(1,:,1)), S, 1, MPI_RP, MPI_SUM, sub_comm, ie)
+ 
+    RHS(1,:,1) = RHS(1,:,1) - S / ng(2)
+
+!     call exchange_boundaries_1D(glob_comm, Phi(:,:,1), nx, BCs)
+
+!     call Res1D(nx,ny,Phi(:,1,1),RHS(:,1,1),&
+!                  dx**(-2),dx**(-2),&
+!                  R)
+
+    if (master) write (*,*) "R1:",R
+
+    Solver1D = PoisFFT_Solver1D([ny],Ls(1:1),BCs,PoisFFT_FiniteDifference2, &
+                                int(ng(2:2)),int(off(2:2)),sub_comm)
+
+    do i=1,1
+      call system_clock(count=t1)
+
+      call Execute(Solver1D,Phi(1,:,i),RHS(1,:,i))
+
+      call system_clock(count=t2)
+      if (master) write(*,*) "solver cpu time", real(t2-t1)/real(trate)
+    end do
+
+    call Finalize(Solver1D)
+
+!     call exchange_boundaries_1D(glob_comm, Phi(:,1,1), nx, ny, BCs)
+
+!     call Res1D(nx,ny,Phi(:,1,1),RHS(:,1,1),&
+!                  dx**(-2),dx**(-2),&
+!                  R)
+
+    if (master) write (*,*) "R2:",R
+
+    if (master) write(*,*) "--------"
+  end subroutine
+
+  
+  subroutine save_vtk
+    use Endianness
+    integer :: filetype, unit
+    integer :: fh = MPI_FILE_NULL
+    integer(MPI_OFFSET_KIND) pos
+    real(RP),allocatable :: buffer(:,:,:),buf(:)
+    character :: lf=achar(10)
+    character(70) :: str
+    character(10) :: fm = '(*(1x,g0))'
+    character(len=:), allocatable :: header, tmp
+    integer(MPI_OFFSET_KIND) :: header_len
+
+    call GetEndianness
+    
+    if (master) then
+      header =  "# vtk DataFile Version 2.0"//lf
+      header =  header // "CLMM output file"//lf
+      header =  header //  "BINARY"//lf
+      header =  header //  "DATASET RECTILINEAR_GRID"//lf
+      str="DIMENSIONS"
+      write(str(12:),fm) ng(1),ng(2),ng(3)
+      header =  header //  str//lf
+      
+      str="X_COORDINATES"
+      write(str(15:),fm) ng(1),"double"
+      header =  header //  str//lf
+      allocate( character(ng(1)*c_sizeof(dx)) :: tmp)
+      tmp = transfer(BigEnd([((i-0.5)*dx,i=1,ng(1))]), tmp)
+      header =  header //  tmp // lf
+      deallocate(tmp)
+      
+      str="Y_COORDINATES"
+      write(str(15:),fm) ng(2),"double"
+      header =  header //  str//lf      
+      allocate( character(ng(2)*c_sizeof(dy)) :: tmp)
+      tmp = transfer(BigEnd([((j-0.5)*dy,j=1,ng(2))]), tmp)
+      header =  header // tmp // lf
+      deallocate(tmp)
+      
+      str="Z_COORDINATES"
+      write(str(15:),fm) ng(3),"double"
+      header =  header //  str//lf
+      allocate( character(ng(3)*c_sizeof(dz)) :: tmp)
+      tmp = transfer(BigEnd([((k-0.5)*dz,k=1,ng(3))]), tmp)
+      header =  header // tmp // lf
+      deallocate(tmp)
+      
+      str="POINT_DATA"
+      write(str(12:),fm) product(ng)
+      header =  header //  str//lf
+      header =  header //  lf
+      header =  header //  "SCALARS Phi double"//lf
+      header =  header //  "LOOKUP_TABLE default"//lf
+      header_len = len(header)
+    end if
+    call MPI_Bcast(header_len, storage_size(header_len)/8, MPI_BYTE, 0, glob_comm, ie)
+    
+    call MPI_Type_create_subarray(3, int(ng), int(nxyz), int(off), &
+       MPI_ORDER_FORTRAN, MPI_RP, filetype, ie)
+    if (ie/=0) call error_stop("create_subarray", ie)
+    
+    call MPI_type_commit(filetype, ie)
+    if (ie/=0) call error_stop("type_commit", ie)
+
+    
+    call MPI_File_open(glob_comm,"out.vtk", IOR(IOR(MPI_MODE_CREATE, MPI_MODE_WRONLY), MPI_MODE_EXCL), MPI_INFO_NULL, fh, ie)
+    
+    if (ie/=0) then
+      call MPI_Barrier(glob_comm, ie)
+      
+      if (master) call MPI_File_delete("out.vtk",MPI_INFO_NULL, ie)
+      if (ie/=0) call error_stop("file delete", ie)
+      
+      call MPI_Barrier(glob_comm, ie)
+      
+      call MPI_File_open(glob_comm,"out.vtk", IOR(MPI_MODE_CREATE, MPI_MODE_WRONLY), MPI_INFO_NULL, fh, ie)
+      if (ie/=0) call error_stop("file open after delete", ie)
+    end if
+
+    call MPI_File_set_view(fh, 0_MPI_OFFSET_KIND, MPI_CHARACTER, MPI_CHARACTER, "native", MPI_INFO_NULL, ie)
+    if (ie/=0) call error_stop("set_view header", ie)
+    
+    if (master) then
+       call MPI_File_write(fh, header, int(header_len), MPI_CHARACTER, MPI_STATUS_IGNORE, ie)
+       if (ie/=0) call error_stop("file write", ie)
+    end if
+    
+    call MPI_Barrier(glob_comm, ie)
+    call MPI_File_set_view(fh, header_len, MPI_RP, filetype, "native", MPI_INFO_NULL, ie)
+    if (ie/=0) call error_stop("set_view", ie)
+    
+    buffer = BigEnd(Phi(1:nx,1:ny,1:nz))
+    
+    call MPI_File_write_all(fh, buffer, nx*ny*nz, MPI_RP, MPI_STATUS_IGNORE, ie)
+
+    if (ie/=0) call error_stop("write_all", ie)
+
+    call MPI_File_close(fh, ie)
+    if (ie/=0) call error_stop("close", ie)
+    
+  end subroutine
+
+end program testpoisson_MPI

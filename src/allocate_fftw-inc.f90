@@ -26,15 +26,24 @@ integer(c_size_t) :: cnt
 integer(c_intptr_t) :: a1(DIM), a2(DIM), a3(DIM), a4(DIM)
 !                   local_ni local_i_start local_no local_o_start
 
-! alloc_local = pfft_local_size_dft_3d(n, comm_cart_3d, pfft_transposed_none, local_ni, local_i_start, local_no, local_o_start)
-cnt = pfft_local_size_dft(DIM, int(GDIMS, c_intptr_t), self % mpi % comm, pfft_transposed_none, a1, a2, a3, a4)
-if (.not. all(a1(DIM:1:-1) == self % nxyz)) then
-   write(ferr, *) a1(DIM:1:-1), '!=', self % nxyz
-   stop 'Error. Inconsistent size of local arrays !'
-end if
-p = fftw_malloc(storage_size(DATAF) / storage_size('_') * cnt)
-#elif defined(MPI) && (DIM==1)
-p = fftw_malloc(storage_size(DATAF) / storage_size('_') * int(self % gnx, c_size_t))
+      class( PoisFFT_SolverXD ), intent(inout)        :: D
+      type(c_ptr) :: p
+#if defined(MPI) && dimensions>1
+      integer(c_size_t) :: cnt
+      integer(c_intptr_t) :: a1(dimensions),a2(dimensions),a3(dimensions),a4(dimensions)
+
+      cnt =  pfft_local_size_dft(dimensions,int(gdims,c_intptr_t), &
+                  D%mpi%comm, PFFT_TRANSPOSED_NONE, &
+                  a1,a2,a3,a4)
+      if (.not.all(a1(dimensions:1:-1)==D%nxyz)) then
+        write(*,*) "PoisFFT Error. Inconsistent size of local arrays from pfft_local_size_dft!"
+        write(*,*) a1(dimensions:1:-1)
+        write(*,*) D%nxyz
+        stop
+      end if  
+      p = fftw_malloc( storage_size( dataf )/storage_size('a') * cnt )
+#elif defined(MPI) && dimensions==1
+      p = fftw_malloc( storage_size( dataf )/storage_size('a') * int(D%gnx, c_size_t ))
 #else
 p = fftw_malloc(storage_size(DATAF) / storage_size('_') * self % cnt)
 #endif

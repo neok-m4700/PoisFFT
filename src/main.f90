@@ -13,6 +13,19 @@ module poisfft
       poisfft_solver3d_dp => poisfft_solver3d
    implicit none
 
+  use PoisFFT_Precisions
+  
+  use PoisFFT_Parameters
+
+  use PoisFFT_SP, PoisFFT_Solver1D_SP => PoisFFT_Solver1D, &
+                  PoisFFT_Solver2D_SP => PoisFFT_Solver2D, &
+                  PoisFFT_Solver3D_SP => PoisFFT_Solver3D, &
+                  PoisFFT_Solver3D_nonuniform_z_SP => PoisFFT_Solver3D_nonuniform_z
+
+  use PoisFFT_DP, PoisFFT_Solver1D_DP => PoisFFT_Solver1D, &
+                  PoisFFT_Solver2D_DP => PoisFFT_Solver2D, &
+                  PoisFFT_Solver3D_DP => PoisFFT_Solver3D, &
+                  PoisFFT_Solver3D_nonuniform_z_DP => PoisFFT_Solver3D_nonuniform_z
 contains
 #ifdef MPI
    subroutine poisfft_initmpigrid(mpi_comm, np, poisfft_comm, ierr)
@@ -64,4 +77,4 @@ contains
    end subroutine
 
 #endif
-end module
+end module PoisFFT
